@@ -1,5 +1,5 @@
 package sfera.eduportal2.entity.enums;
 
 public enum Difficulty {
-    EASY, NORMAL, HARD
+    EASY, NORMAL, HARD,ADVANCED
 }
