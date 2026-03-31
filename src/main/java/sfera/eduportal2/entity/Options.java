@@ -12,6 +12,4 @@ import sfera.eduportal2.entity.Template.AbsEntity;
 @Builder
 public class Options  extends AbsEntity {
 
-
-
 }

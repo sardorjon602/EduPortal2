@@ -1,12 +1,8 @@
 package sfera.eduportal2.entity;
 
 import jakarta.persistence.Entity;
-import jakarta.persistence.ManyToOne;
 import lombok.*;
 import sfera.eduportal2.entity.Template.AbsEntity;
-
-import java.sql.Time;
-import java.util.Date;
 
 @Getter
 @Setter
@@ -15,18 +11,5 @@ import java.util.Date;
 @Entity
 @Builder
 public class TestResult extends AbsEntity {
-
-    @ManyToOne
-    private Users users;
-
-    @ManyToOne
-    private Category category;
-
-    private String score;
-
-    private Date takenAt;
-
-
-
 
 }
