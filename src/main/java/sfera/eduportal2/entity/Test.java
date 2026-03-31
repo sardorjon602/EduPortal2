@@ -3,7 +3,7 @@ package sfera.eduportal2.entity;
 import jakarta.persistence.Entity;
 import jakarta.persistence.ManyToOne;
 import lombok.*;
-import sfera.eduportal2.entity.template.AbsEntity;
+import sfera.eduportal2.entity.Template.AbsEntity;
 
 @Getter
 @Setter

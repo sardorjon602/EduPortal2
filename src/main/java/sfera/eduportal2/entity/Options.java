@@ -2,7 +2,7 @@ package sfera.eduportal2.entity;
 
 import jakarta.persistence.Entity;
 import lombok.*;
-import sfera.eduportal2.entity.template.AbsEntity;
+import sfera.eduportal2.entity.Template.AbsEntity;
 
 @Getter
 @Setter
@@ -11,4 +11,5 @@ import sfera.eduportal2.entity.template.AbsEntity;
 @Entity
 @Builder
 public class Options  extends AbsEntity {
+
 }

@@ -1,4 +1,4 @@
-package sfera.eduportal2.entity.template;
+package sfera.eduportal2.entity.Template;
 
 
 import jakarta.persistence.GeneratedValue;
