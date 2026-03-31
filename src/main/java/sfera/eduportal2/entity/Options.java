@@ -2,7 +2,7 @@ package sfera.eduportal2.entity;
 
 import jakarta.persistence.Entity;
 import lombok.*;
-import sfera.eduportal.entity.template.AbsEntity;
+import sfera.eduportal2.entity.template.AbsEntity;
 
 @Getter
 @Setter
