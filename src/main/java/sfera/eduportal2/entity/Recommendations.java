@@ -2,11 +2,9 @@ package sfera.eduportal2.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
 import lombok.*;
 import sfera.eduportal2.entity.Template.AbsEntity;
-
-import java.sql.Time;
-import java.util.Date;
 
 @Getter
 @Setter
@@ -14,19 +12,16 @@ import java.util.Date;
 @NoArgsConstructor
 @Entity
 @Builder
-public class TestResult extends AbsEntity {
+public class Recommendations extends AbsEntity {
+
+    @OneToOne
+    private Users user;
 
     @ManyToOne
-    private Users users;
+    private Course course;
 
-    @ManyToOne
-    private Category category;
+    private String reason;
 
-    private String score;
-
-    private Date takenAt;
-
-
-
+    private String status;
 
 }

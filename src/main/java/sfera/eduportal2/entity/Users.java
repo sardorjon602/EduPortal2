@@ -2,6 +2,7 @@ package sfera.eduportal2.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.ManyToOne;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -19,24 +20,24 @@ import java.util.List;
 public class Users extends AbsEntity implements UserDetails {
 
     @Column(nullable = false)
-    private String firstName;
-
-    @Column(nullable = false)
-    private String lastName;
+    private String fullName;
 
     @Column(nullable = false,  unique = true)
     private String email;
 
-    @Column(nullable = false, unique = true )
+    @Column(nullable = false )
     private String password;
 
+    @Column(nullable = false)
     private Integer age;
 
-    private String role;
+    @ManyToOne
+    private Roles role;
 
+    @Column(nullable = false)
     private String level;
 
-    private boolean is_active;
+    private boolean enabled;
 
 
     @Override
@@ -51,21 +52,21 @@ public class Users extends AbsEntity implements UserDetails {
 
     @Override
     public boolean isAccountNonExpired() {
-        return UserDetails.super.isAccountNonExpired();
+        return true;
     }
 
     @Override
     public boolean isAccountNonLocked() {
-        return UserDetails.super.isAccountNonLocked();
+        return true;
     }
 
     @Override
     public boolean isCredentialsNonExpired() {
-        return UserDetails.super.isCredentialsNonExpired();
+        return true;
     }
 
     @Override
     public boolean isEnabled() {
-        return UserDetails.super.isEnabled();
+        return enabled;
     }
 }
