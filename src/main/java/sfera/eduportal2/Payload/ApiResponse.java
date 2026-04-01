@@ -1,7 +1,8 @@
-package sfera.eduportal2.entity.Payload;
+package sfera.eduportal2.Payload;
 
 import lombok.*;
 import org.springframework.http.HttpStatus;
+
 @Getter
 @Setter
 @AllArgsConstructor
