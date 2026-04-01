@@ -48,6 +48,7 @@ public class DataLoader implements CommandLineRunner {
                     .fullName("Admin admin")
                     .email("admin@gmail.com")
                     .age(20)
+                    .level("HARD")
                     .password(passwordEncoder.encode("admin123"))
                     .phoneNumber("+998914676507")
                     .enabled(true)
