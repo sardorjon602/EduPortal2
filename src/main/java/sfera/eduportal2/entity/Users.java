@@ -42,6 +42,8 @@ public class Users extends AbsEntity implements UserDetails {
     @Column(nullable = false)
     private Level level;
 
+    private Long code;
+
     private boolean enabled;
 
 
