@@ -1,6 +1,7 @@
 package sfera.eduportal2.Payload.response;
 
 import lombok.*;
+import sfera.eduportal2.entity.enums.Level;
 
 @Getter
 @Setter
@@ -18,7 +19,9 @@ public class ResUser {
 
     private String email;
 
-    private String imageUrl;
+    private Integer age;
+
+    private Level level;
 
     private String role;
 
