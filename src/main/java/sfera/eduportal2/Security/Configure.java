@@ -13,8 +13,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import sfera.eduportal2.Exception.NotFoundException;
+import sfera.eduportal2.Payload.ApiResponse;
 import sfera.eduportal2.Repository.UserRepository;
-import sfera.eduportal2.entity.Payload.ApiResponse;
 import sfera.eduportal2.entity.Users;
 
 import java.util.Optional;
