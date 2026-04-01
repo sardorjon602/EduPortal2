@@ -7,6 +7,7 @@ import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import sfera.eduportal2.entity.Template.AbsEntity;
+import sfera.eduportal2.entity.enums.Level;
 
 import java.util.Collection;
 import java.util.List;
@@ -39,7 +40,7 @@ public class Users extends AbsEntity implements UserDetails {
     private Roles role;
 
     @Column(nullable = false)
-    private String level;
+    private Level level;
 
     private boolean enabled;
 
