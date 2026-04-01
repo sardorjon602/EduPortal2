@@ -41,4 +41,16 @@ public class JwtProvider {
             throw  new JwtException("Jwt exception" + e.getMessage());
         }
     }
+    public boolean isValid(String token){
+        try {
+            Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token);
+            return true;
+        }catch (ExpiredJwtException e){
+            throw new JwtException("Jwt token has expired" + e.getMessage());
+        }catch (SignatureException e){
+            throw new JwtException("Invalid JWT signature" + e.getMessage());
+        }catch(Exception e){
+            throw new JwtException("Invalid JWT token" + e.getMessage());
+        }
+    }
 }
