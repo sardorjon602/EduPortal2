@@ -25,7 +25,6 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final RoleRepository roleRepository;
-    private final MailSender mailSender;
     private final JwtProvider jwtProvider;
 
     public ApiResponse getMe(Users user) {
