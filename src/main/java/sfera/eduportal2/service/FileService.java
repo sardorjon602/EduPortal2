@@ -92,7 +92,7 @@ public class FileService {
     }
     public String checkingAttachment(MultipartFile file) {
         String fileName = file.getOriginalFilename();
-        if (fileName == null) {
+        if (fileName != null) {
             if(fileName.endsWith(".pdf")||fileName.endsWith(".doc")||fileName.endsWith(".docx")||fileName.endsWith(".xlsx")||fileName.endsWith(".xls")||fileName.endsWith(".txt")) {
                 return "file";
             }else if(fileName.endsWith(".png")||fileName.endsWith(".jpg")||fileName.endsWith(".jpeg")||fileName.endsWith(".webp")||fileName.endsWith(".PNG")||fileName.endsWith("JPG")) {
@@ -108,7 +108,7 @@ public class FileService {
         String uniqueName = LocalDateTime.now() + "_" + fileName;
         String path =  "uploads/" + uniqueName;
 
-        String uploadUrl = String.format("storage/v1/s3", url , bucketName ,filePath);
+        String uploadUrl = url + "/storage/v1/object/" + bucketName + "/" + path;
 
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.setContentType(MediaType.parseMediaType(Objects.requireNonNull(file.getContentType())));
@@ -120,7 +120,7 @@ public class FileService {
                 uploadUrl, HttpMethod.POST, entity, String.class
         );
         if (response.getStatusCode().is2xxSuccessful()) {
-            return CompletableFuture.completedFuture(url + "storage/v1/object/uploads" + bucketName + "/" + path);
+            return CompletableFuture.completedFuture(uploadUrl);
         }else {
             throw new NotFoundException(new ApiResponse("File not found", HttpStatus.NOT_FOUND,false,null));
         }

@@ -11,6 +11,9 @@ import sfera.eduportal2.Payload.ApiResponse;
 import sfera.eduportal2.Payload.response.ResFile;
 import sfera.eduportal2.service.FileService;
 
+import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
+
 @RestController
 @RequestMapping("/file")
 @RequiredArgsConstructor
@@ -20,15 +23,18 @@ public class FileController {
 
     // ✅ FILE UPLOAD
     @PostMapping(value = "/upload", consumes = "multipart/form-data")
-    public ResponseEntity<ApiResponse> uploadFile(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file) throws IOException {
 
         if (file.isEmpty()) {
             return ResponseEntity.badRequest()
-                    .body(new ApiResponse("File is empty", HttpStatus.NOT_FOUND, false, null));
+                    .body("File is empty");
         }
 
-        ApiResponse response = fileService.saveFile(file);
-        return ResponseEntity.ok(response);
+        String result = fileService
+                .uploadFile(file, file.getOriginalFilename())
+                .join(); // 🔥 MUHIM
+
+        return ResponseEntity.ok(result);
     }
 
     // ✅ FILE DOWNLOAD
