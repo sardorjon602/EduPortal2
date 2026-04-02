@@ -3,6 +3,7 @@ package sfera.eduportal2.entity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.ManyToOne;
+import jakarta.validation.constraints.Email;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -30,6 +31,7 @@ public class Users extends AbsEntity implements UserDetails {
     private String phoneNumber;
 
     @Column(nullable = false,  unique = true)
+    @Email
     private String email;
 
     @Column(nullable = false )

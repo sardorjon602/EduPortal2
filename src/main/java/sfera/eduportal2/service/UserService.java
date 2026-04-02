@@ -56,7 +56,7 @@ public class UserService {
                 .role(roleRepository.findByRole(Role.ROLE_TEACHER))
                 .enabled(true)
                 .code(0L)
-                .level(null)
+                .level(authRegister.getLevel())
                 .build();
         userRepository.save(user);
         return ApiResponse.builder()
