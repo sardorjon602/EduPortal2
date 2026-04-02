@@ -1,5 +1,4 @@
 package sfera.eduportal2.service;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.mail.MailSender;
