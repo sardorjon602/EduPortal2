@@ -14,14 +14,10 @@ import sfera.eduportal2.service.AuthService;
 
 public class AuthController {
 
-
     private final AuthService authService;
 
-    @PostMapping("/register")
-    public ResponseEntity<ApiResponse> register(@RequestBody AuthRegister authRegister){
-        ApiResponse register = authService.register(authRegister);
-        return ResponseEntity.ok(register);
-    }
+
+
 
     @PutMapping("/activate")
     public ResponseEntity<ApiResponse> activate(@RequestParam Long code){
@@ -33,6 +29,12 @@ public class AuthController {
     public ResponseEntity<ApiResponse> login(@RequestBody AuthLogin authLogin){
         ApiResponse apiResponse = authService.login(authLogin);
         return ResponseEntity.ok(apiResponse);
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<ApiResponse> register(@RequestBody AuthRegister authRegister){
+        ApiResponse register = authService.register(authRegister);
+        return ResponseEntity.ok(register);
     }
 
 
