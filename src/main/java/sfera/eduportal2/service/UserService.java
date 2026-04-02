@@ -2,7 +2,6 @@ package sfera.eduportal2.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.mail.MailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import sfera.eduportal2.Payload.ApiResponse;

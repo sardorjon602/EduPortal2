@@ -9,7 +9,11 @@ import org.springframework.http.HttpHeaders;
 @Getter
 @Setter
 public class ResFile {
+
     private HttpHeaders headers;
+
     private Resource resource;
+
     private String fillName;
+
 }
