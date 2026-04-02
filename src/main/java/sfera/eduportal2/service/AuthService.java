@@ -41,7 +41,7 @@ public class AuthService {
                 .email(authRegister.getEmail())
                 .password(passwordEncoder.encode(authRegister.getPassword()))
                 .phoneNumber(authRegister.getPhoneNumber())
-                .level(null)
+                .level(authRegister.getLevel())
                 .enabled(false)
                 .role(roleRepository.findByRole(Role.ROLE_USER))
                 .code(code)
