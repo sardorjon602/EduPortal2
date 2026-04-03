@@ -32,7 +32,7 @@ public class Configure {
         return username -> {
             Users users = userRepository.findByEmail(username).get();
             if(users == null) {
-                throw  new NotFoundException(new ApiResponse("User not found", HttpStatus.NOT_FOUND,false,null));
+                throw  new NotFoundException("User not found!!!");
             }else {
                 return users;
             }

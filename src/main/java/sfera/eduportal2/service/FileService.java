@@ -116,7 +116,7 @@ public class FileService {
         if (response.getStatusCode().is2xxSuccessful()) {
             return CompletableFuture.completedFuture(uploadUrl);
         }else {
-            throw new NotFoundException(new ApiResponse("File not found", HttpStatus.NOT_FOUND,false,null));
+            throw new NotFoundException("Not found !!!!");
         }
     }
 }
