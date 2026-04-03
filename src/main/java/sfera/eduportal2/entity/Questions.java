@@ -16,7 +16,7 @@ public class Questions extends AbsEntity {
 
     private String text;
 
-    private Type type;
+    private String type;
 
     @ManyToOne
     private Module module;

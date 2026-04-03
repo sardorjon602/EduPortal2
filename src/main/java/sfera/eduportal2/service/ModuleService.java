@@ -115,7 +115,7 @@ public class ModuleService {
         return ApiResponse.builder()
                 .message("Module saqlandi")
                 .success(true)
-                .status(HttpStatus.CREATED)
+                .status(HttpStatus.OK)
                 .build();
     }
 
