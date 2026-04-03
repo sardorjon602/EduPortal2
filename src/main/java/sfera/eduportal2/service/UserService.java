@@ -2,7 +2,6 @@ package sfera.eduportal2.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.mail.MailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import sfera.eduportal2.Payload.ApiResponse;
@@ -57,7 +56,7 @@ public class UserService {
                 .role(roleRepository.findByRole(Role.ROLE_TEACHER))
                 .enabled(true)
                 .code(0L)
-                .level(null)
+                .level(authRegister.getLevel())
                 .build();
         userRepository.save(user);
         return ApiResponse.builder()
