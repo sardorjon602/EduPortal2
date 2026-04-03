@@ -4,7 +4,7 @@ import sfera.eduportal2.Payload.ApiResponse;
 
 
 public class NotFoundException extends RuntimeException {
-    public NotFoundException(String message) {
-        super(message);
+    public NotFoundException(ApiResponse message) {
+        super(message.getMessage());
     }
 }

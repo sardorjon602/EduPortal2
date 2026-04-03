@@ -8,4 +8,5 @@ import sfera.eduportal2.entity.enums.Role;
 @Repository
 public interface RoleRepository extends JpaRepository<Roles, Integer> {
     Roles findByRole(Role role);
+
 }
