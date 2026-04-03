@@ -6,7 +6,10 @@ import org.springframework.stereotype.Service;
 import sfera.eduportal2.Payload.ApiResponse;
 import sfera.eduportal2.Payload.request.ReqTest;
 import sfera.eduportal2.Payload.response.ResTest;
+import sfera.eduportal2.Repository.ModuleRepository;
+import sfera.eduportal2.Repository.OptionsRepository;
 import sfera.eduportal2.Repository.TestRepository;
+import sfera.eduportal2.entity.Module;
 import sfera.eduportal2.entity.Options;
 import sfera.eduportal2.entity.Test;
 
@@ -21,8 +24,8 @@ public class TestService {
 
 
     private final TestRepository testRepository;
-//    private final ModuleRepository moduleRepository;
-//    private final OptionsRepository optionsRepository;
+    private final ModuleRepository moduleRepository;
+    private final OptionsRepository optionsRepository;
 
     public ApiResponse findAll() {
         List<Test> all = testRepository.findAll();
@@ -31,9 +34,9 @@ public class TestService {
             ResTest resTest = ResTest.builder()
                     .id(test.getId())
                     .title(test.getTitle())
-//                    .moduleName(test.getModule().getTitle())
-//                    .difficulty(test.getDifficulty())
-//                    .optionName(test.getOptions().getName())
+                    .moduleName(test.getModule().getModuleName())
+                    .difficulty(test.getDifficulty())
+                    .optionName(test.getOptions().getText())
                     .timeLimit(test.getTimeLimit())
                     .build();
             resTests.add(resTest);
@@ -59,9 +62,9 @@ public class TestService {
         ResTest resTest = ResTest.builder()
                 .id(test.getId())
                 .title(test.getTitle())
-//                .moduleName(test.getModule().getTitle())
-//                .difficulty(test.getDifficulty())
-//                .optionName(test.getOptions().getName())
+                .moduleName(test.getModule().getModuleName())
+                .difficulty(test.getDifficulty())
+                .optionName(test.getOptions().getText())
                 .timeLimit(test.getTimeLimit())
                 .build();
         return ApiResponse.builder()
@@ -82,32 +85,32 @@ public class TestService {
                     .build();
         }
 
-//        Optional<Module> moduleOptional = moduleRepository.findById(reqTest.getModuleId());
-//        if (moduleOptional.isEmpty()) {
-//            return ApiResponse.builder()
-//                    .message("Module not found")
-//                    .success(false)
-//                    .status(HttpStatus.NOT_FOUND)
-//                    .build();
-//        }
-//
-//        Optional<Options> optionsOptional = optionsRepository.findById(reqTest.getOptionId());
-//        if (optionsOptional.isEmpty()) {
-//            return ApiResponse.builder()
-//                    .message("Option not found")
-//                    .success(false)
-//                    .status(HttpStatus.NOT_FOUND)
-//                    .build();
-//        }
-//
-//        Test test = Test.builder()
-//                .title(reqTest.getTitle())
-//                .module(moduleOptional.get())
-//                .difficulty(reqTest.getDifficulty())
-//                .options(optionsOptional.get())
-//                .timeLimit(reqTest.getTimeLimit())
-//                .build();
-//        testRepository.save(test);
+        Optional<sfera.eduportal2.entity.Module> moduleOptional = moduleRepository.findById(reqTest.getModuleId());
+        if (moduleOptional.isEmpty()) {
+            return ApiResponse.builder()
+                    .message("Module not found")
+                    .success(false)
+                    .status(HttpStatus.NOT_FOUND)
+                    .build();
+        }
+
+        Optional<Options> optionsOptional = optionsRepository.findById(reqTest.getOptionId());
+        if (optionsOptional.isEmpty()) {
+            return ApiResponse.builder()
+                    .message("Option not found")
+                    .success(false)
+                    .status(HttpStatus.NOT_FOUND)
+                    .build();
+        }
+
+        Test test = Test.builder()
+                .title(reqTest.getTitle())
+                .module(moduleOptional.get())
+                .difficulty(reqTest.getDifficulty())
+                .options(optionsOptional.get())
+                .timeLimit(reqTest.getTimeLimit())
+                .build();
+        testRepository.save(test);
 
         return ApiResponse.builder()
                 .message("Test successfully saved")
@@ -135,29 +138,29 @@ public class TestService {
                     .build();
         }
 
-//        Optional<Module> moduleOptional = moduleRepository.findById(reqTest.getModuleId());
-//        if (moduleOptional.isEmpty()) {
-//            return ApiResponse.builder()
-//                    .message("Module not found")
-//                    .success(false)
-//                    .status(HttpStatus.NOT_FOUND)
-//                    .build();
-//        }
+        Optional<Module> moduleOptional = moduleRepository.findById(reqTest.getModuleId());
+        if (moduleOptional.isEmpty()) {
+            return ApiResponse.builder()
+                    .message("Module not found")
+                    .success(false)
+                    .status(HttpStatus.NOT_FOUND)
+                    .build();
+        }
 
-//        Optional<Options> optionsOptional = optionsRepository.findById(reqTest.getOptionId());
-//        if (optionsOptional.isEmpty()) {
-//            return ApiResponse.builder()
-//                    .message("Option not found")
-//                    .success(false)
-//                    .status(HttpStatus.NOT_FOUND)
-//                    .build();
-//        }
+        Optional<Options> optionsOptional = optionsRepository.findById(reqTest.getOptionId());
+        if (optionsOptional.isEmpty()) {
+            return ApiResponse.builder()
+                    .message("Option not found")
+                    .success(false)
+                    .status(HttpStatus.NOT_FOUND)
+                    .build();
+        }
 
         Test toUpdate = optional.get();
         toUpdate.setTitle(reqTest.getTitle());
-//        toUpdate.setModule(moduleOptional.get());
-//        toUpdate.setDifficulty(reqTest.getDifficulty());
-//        toUpdate.setOptions(optionsOptional.get());
+        toUpdate.setModule(moduleOptional.get());
+        toUpdate.setDifficulty(reqTest.getDifficulty());
+        toUpdate.setOptions(optionsOptional.get());
         toUpdate.setTimeLimit(reqTest.getTimeLimit());
         testRepository.save(toUpdate);
 
