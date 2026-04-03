@@ -18,7 +18,7 @@ import sfera.eduportal2.entity.enums.Role;
 
 @Service
 @RequiredArgsConstructor
-public class AuthService {
+public class  AuthService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;

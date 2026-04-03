@@ -1,23 +1,18 @@
-package sfera.eduportal2.entity;
+package sfera.eduportal2.Payload.response;
 
-import jakarta.persistence.Entity;
 import jakarta.persistence.ManyToOne;
 import lombok.*;
-import sfera.eduportal2.entity.Template.AbsEntity;
-
+import sfera.eduportal2.entity.Questions;
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Entity
 @Builder
-public class Options  extends AbsEntity {
-
+public class ResOptions {
     @ManyToOne
     private Questions questions;
 
     private boolean isCorrect;
 
     private String text;
-
 }
