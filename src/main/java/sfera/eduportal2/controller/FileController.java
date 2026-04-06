@@ -22,37 +22,21 @@ public class FileController {
 
     private final FileService fileService;
 
-    // ✅ FILE UPLOAD
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
-    @PostMapping(value = "/upload", consumes = "multipart/form-data")
-    public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file) throws IOException {
-
-        if (file.isEmpty()) {
-            return ResponseEntity.badRequest()
-                    .body("File is empty");
-        }
-
-        String result = fileService
-                .uploadFile(file, file.getOriginalFilename())
-                .join(); // 🔥 MUHIM
-
-        return ResponseEntity.ok(result);
+    @PostMapping(value = "/upload", consumes = {"multipart/form-data"})
+    public ResponseEntity<ApiResponse> uploadFile(@RequestParam("file") MultipartFile file) {
+        ApiResponse apiResponse = fileService.saveFile(file);
+        return  ResponseEntity.ok(apiResponse);
     }
 
-    // ✅ FILE DOWNLOAD
-//    @GetMapping("/{id}")
-//    public ResponseEntity<Resource> getFile(@PathVariable long id) {
-//
-//        ResFile file = fileService.getAttachment(id);
-//
-//        return ResponseEntity.ok()
-//                .headers(file.getHeaders())
-//                .header(HttpHeaders.CONTENT_DISPOSITION,
-//                        "attachment; filename=\"" + file.getFillName() + "\"")
-//                .body(file.getResource());
-//    }
+    @GetMapping("/{id}")
+    public ResponseEntity<Resource> getFile(@PathVariable long id) {
 
+        ResFile file = fileService.getAttachment(id);
 
-
-
+        return ResponseEntity.ok()
+                .headers(file.getHeaders())
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + file.getFillName() + "\"")
+                .body(file.getResource());
+    }
 }

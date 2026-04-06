@@ -1,4 +1,5 @@
 package sfera.eduportal2.service;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.mail.MailSender;
@@ -18,7 +19,7 @@ import sfera.eduportal2.entity.enums.Role;
 
 @Service
 @RequiredArgsConstructor
-public class  AuthService {
+public class AuthService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -30,12 +31,12 @@ public class  AuthService {
     public ApiResponse register(AuthRegister authRegister) {
         boolean exists = userRepository.existsByEmailAndRole_Role(authRegister.getEmail(), Role.ROLE_USER);
         if (exists) {
-            return new ApiResponse("This email has been used before.", HttpStatus.BAD_REQUEST, false,null);
+            return new ApiResponse("This email has been used before.", HttpStatus.BAD_REQUEST, false, null);
         }
         long code = Math.round(Math.random() * 1000000);
         System.out.println(code);
 
-        Users  user = Users.builder()
+        Users user = Users.builder()
                 .fullName(authRegister.getFullName())
                 .age(authRegister.getAge())
                 .email(authRegister.getEmail())
@@ -52,16 +53,16 @@ public class  AuthService {
         message.setFrom("email");
         message.setTo(authRegister.getEmail());
         message.setSubject("Verify your account");
-        message.setText("Your code "+code+"\n Enter this code.");
+        message.setText("Your code " + code + "\n Enter this code.");
         javaMailSender.send(message);
 
-        return new ApiResponse("You have registered, now enter the code",HttpStatus.OK, true ,null);
+        return new ApiResponse("You have registered, now enter the code", HttpStatus.OK, true, null);
     }
 
-    public ApiResponse activateUser(Long code){
+    public ApiResponse activateUser(Long code) {
         Users users = userRepository.findByCode(code).orElse(null);
-        if(users==null){
-            return new ApiResponse("User not found",HttpStatus.NOT_FOUND, false,null);
+        if (users == null) {
+            return new ApiResponse("User not found", HttpStatus.NOT_FOUND, false, null);
         }
         users.setEnabled(true);
         users.setCode(null);
@@ -72,13 +73,13 @@ public class  AuthService {
                 .token(token)
                 .role(users.getRole().getRole().name())
                 .build();
-        return new ApiResponse("You have activated your account",HttpStatus.OK, true, tokenObj);
+        return new ApiResponse("You have activated your account", HttpStatus.OK, true, tokenObj);
     }
 
-    public ApiResponse login(AuthLogin authLogin){
+    public ApiResponse login(AuthLogin authLogin) {
         Users users = userRepository.findByEmail(authLogin.getEmail()).orElse(null);
-        if(users==null){
-            return new ApiResponse("User not found",HttpStatus.NOT_FOUND, false, null);
+        if (users == null) {
+            return new ApiResponse("User not found", HttpStatus.NOT_FOUND, false, null);
         }
         if (users.isEnabled()) {
             if (passwordEncoder.matches(authLogin.getPassword(), users.getPassword())) {
@@ -88,10 +89,10 @@ public class  AuthService {
                         .token(token)
                         .role(users.getRole().getRole().name())
                         .build();
-                return new ApiResponse("You have logged in",HttpStatus.OK, true, tokenObj);
+                return new ApiResponse("You have logged in", HttpStatus.OK, true, tokenObj);
             }
-            return new ApiResponse("You have not logged in",HttpStatus.BAD_REQUEST, false, null);
+            return new ApiResponse("You have not logged in", HttpStatus.BAD_REQUEST, false, null);
         }
-        return new ApiResponse("You are not active ",HttpStatus.BAD_REQUEST, false,     null);
+        return new ApiResponse("You are not active ", HttpStatus.BAD_REQUEST, false, null);
     }
 }

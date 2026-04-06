@@ -4,6 +4,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.OneToOne;
 import lombok.*;
 import sfera.eduportal2.entity.Template.AbsEntity;
+
 @Getter
 @Setter
 @AllArgsConstructor

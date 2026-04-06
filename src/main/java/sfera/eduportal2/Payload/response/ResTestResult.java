@@ -22,5 +22,4 @@ public class ResTestResult {
     private Date takenAt;
 
 
-
 }

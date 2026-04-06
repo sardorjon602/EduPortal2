@@ -8,7 +8,7 @@ import sfera.eduportal2.entity.Module;
 import java.util.Optional;
 
 @Repository
-public interface ModuleRepository extends JpaRepository<Module,Long> {
+public interface ModuleRepository extends JpaRepository<Module, Long> {
 
     boolean existsByModuleNameIgnoreCaseAndIdNot(String moduleName, Long id);
 

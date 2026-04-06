@@ -14,7 +14,7 @@ public class ReqTest {
 
     private Long moduleId;
 
-    private Difficulty  difficulty;
+    private Difficulty difficulty;
 
     private Long optionId;
 

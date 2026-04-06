@@ -31,26 +31,29 @@ public class Configure {
     public UserDetailsService userDetailsService() {
         return username -> {
             Users users = userRepository.findByEmail(username).get();
-            if(users == null) {
-                throw  new NotFoundException("User not found!!!");
-            }else {
+            if (users == null) {
+                throw new NotFoundException("User not found!!!");
+            } else {
                 return users;
             }
         };
     }
+
     @Bean
-    public AuthenticationProvider authenticationProvider(){
+    public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider();
         daoAuthenticationProvider.setUserDetailsService(userDetailsService());
         daoAuthenticationProvider.setPasswordEncoder(passwordEncoder());
         return daoAuthenticationProvider;
     }
+
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
         return configuration.getAuthenticationManager();
     }
+
     @Bean
-    public PasswordEncoder passwordEncoder(){
+    public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
@@ -71,7 +74,6 @@ public class Configure {
         return mailSender;
 
     }
-
 
 
 }

@@ -1,7 +1,9 @@
 package sfera.eduportal2.entity;
+
 import jakarta.persistence.Entity;
 import lombok.*;
 import sfera.eduportal2.entity.Template.AbsEntity;
+
 @Getter
 @Setter
 @AllArgsConstructor
@@ -10,6 +12,6 @@ import sfera.eduportal2.entity.Template.AbsEntity;
 @Builder
 public class Category extends AbsEntity {
 
-private String name;
+    private String name;
 
 }

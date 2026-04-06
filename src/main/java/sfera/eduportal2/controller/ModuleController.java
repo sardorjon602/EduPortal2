@@ -7,7 +7,7 @@ import sfera.eduportal2.Payload.request.RequestModule;
 import sfera.eduportal2.service.ModuleService;
 
 @RestController
-@RequestMapping("auth/module")
+@RequestMapping("/module")
 @RequiredArgsConstructor
 public class ModuleController {
     private final ModuleService moduleService;

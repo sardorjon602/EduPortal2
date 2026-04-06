@@ -6,9 +6,9 @@ import sfera.eduportal2.entity.Users;
 
 @Component
 
-public class    UserMapper {
+public class UserMapper {
 
-    public ResUser resUser(Users user ){
+    public ResUser resUser(Users user) {
         return ResUser.builder()
                 .id(user.getId())
                 .fullName(user.getFullName())

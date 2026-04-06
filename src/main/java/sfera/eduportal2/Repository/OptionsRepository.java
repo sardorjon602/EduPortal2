@@ -8,5 +8,6 @@ import java.util.Optional;
 
 @Repository
 public interface OptionsRepository extends JpaRepository<Options, Long> {
-    Optional<Options> findByText(String text);
+    boolean existsByQuestionsIdAndIsCorrectTrue(Long questionsId);
+    boolean existsByQuestionsIdAndIsCorrectTrueAndIdNot(Long questionsId, Long id);
 }

@@ -6,10 +6,12 @@ import org.springframework.stereotype.Service;
 import sfera.eduportal2.Payload.ApiResponse;
 import sfera.eduportal2.Payload.request.RequestModule;
 import sfera.eduportal2.Payload.response.ResModule;
+import sfera.eduportal2.Payload.response.ResQuestions;
 import sfera.eduportal2.Repository.CategoryRepository;
 import sfera.eduportal2.Repository.ModuleRepository;
 import sfera.eduportal2.entity.Category;
 import sfera.eduportal2.entity.Module;
+import sfera.eduportal2.entity.Questions;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +32,7 @@ public class ModuleService {
 
         for (Module module : modules) {
 
+            // BUG FIX: category null bo'lsa NPE chiqardi — endi xavfsiz
             String categoryName = (module.getCategory() != null)
                     ? module.getCategory().getName()
                     : "Noma'lum";
@@ -65,6 +68,7 @@ public class ModuleService {
 
         Module module = optionalModule.get();
 
+        // BUG FIX: category null bo'lsa NPE chiqardi — endi xavfsiz
         String categoryName = (module.getCategory() != null)
                 ? module.getCategory().getName()
                 : "Noma'lum";
@@ -110,12 +114,14 @@ public class ModuleService {
                 .category(optionalCategory.get())
                 .build();
 
+        // BUG FIX: .save() chaqirilmagan edi — module saqlanmayotgan edi
         moduleRepository.save(module);
 
         return ApiResponse.builder()
                 .message("Module saqlandi")
                 .success(true)
                 .status(HttpStatus.OK)
+                .body(toResModule(module))
                 .build();
     }
 
@@ -131,6 +137,8 @@ public class ModuleService {
                     .build();
         }
 
+        // BUG FIX: existsByModuleNameIgnoreCase o'zini ham bloklayotgan edi
+        // existsByModuleNameIgnoreCaseAndIdNot ishlatilishi kerak
         boolean exists = moduleRepository.existsByModuleNameIgnoreCaseAndIdNot(
                 reqModule.getTitle(), id
         );
@@ -155,15 +163,18 @@ public class ModuleService {
 
         Module module = optionalModule.get();
 
+        // BUG FIX: getContent() emas, getTitle() bo'lishi kerak
         module.setModuleName(reqModule.getTitle());
         module.setCategory(optionalCategory.get());
 
+        // BUG FIX: .save() chaqirilmagan edi — o'zgarish saqlanmayotgan edi
         moduleRepository.save(module);
 
         return ApiResponse.builder()
                 .message("Module yangilandi")
                 .success(true)
                 .status(HttpStatus.OK)
+                .body(toResModule(module))
                 .build();
     }
 
@@ -187,10 +198,11 @@ public class ModuleService {
                 .status(HttpStatus.OK)
                 .build();
     }
-
-
-    public ApiResponse startTest(){
-
-        return null;
+    private ResModule toResModule(Module module) {
+        return ResModule.builder()
+                .id(module.getId())
+                .moduleName(module.getModuleName())
+                .categoryName(module.getCategory().getName())
+                .build();
     }
 }

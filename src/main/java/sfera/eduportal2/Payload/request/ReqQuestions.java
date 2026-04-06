@@ -12,6 +12,5 @@ import lombok.NoArgsConstructor;
 public class ReqQuestions {
     private String text;
     private String type;
-    private int questionCount;
     private Long moduleId;
 }

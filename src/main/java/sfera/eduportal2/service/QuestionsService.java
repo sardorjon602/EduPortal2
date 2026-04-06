@@ -3,6 +3,7 @@ package sfera.eduportal2.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import sfera.eduportal2.Exception.NotFoundException;
 import sfera.eduportal2.Payload.ApiResponse;
 import sfera.eduportal2.Payload.request.ReqQuestions;
 import sfera.eduportal2.Payload.response.ResQuestions;
@@ -35,7 +36,6 @@ public class QuestionsService {
 
         Questions question = Questions.builder()
                 .text(reqQuestions.getText())
-                .questionCount(reqQuestions.getQuestionCount())
                 .module(module.get())
                 .type(reqQuestions.getType().toUpperCase())
                 .build();
@@ -73,7 +73,6 @@ public class QuestionsService {
         }
         Questions questions = byId.get();
         questions.setText(reqQuestions.getText());
-        questions.setQuestionCount(reqQuestions.getQuestionCount());
         questions.setType(reqQuestions.getType().toUpperCase());
         questions.setModule(module.get());
 
@@ -119,8 +118,14 @@ public class QuestionsService {
                 .body(resQuestionsList)
                 .build();
     }
+
     public ApiResponse deleteQuestion(Long id) {
         Optional<Questions> questions = questionsRepository.findById(id);
+
+//        Optional<Questions> questions = questionsRepository.findById(id).orElseThrow(
+//                () -> new NotFoundException("Savol topilmadi")
+//        );
+
         if (questions.isPresent()) {
             questionsRepository.delete(questions.get());
             return ApiResponse.builder()
@@ -138,11 +143,12 @@ public class QuestionsService {
                     .build();
         }
     }
+
     private ResQuestions toResQuestions(Questions questions) {
         return ResQuestions.builder()
+                .id(questions.getId())
                 .text(questions.getText())
                 .type(questions.getType())
-                .questionCount(questions.getQuestionCount())
                 .moduleId(questions.getModule().getId())
                 .moduleName(questions.getModule().getModuleName())
                 .build();

@@ -67,9 +67,9 @@ public class UserService {
                 .build();
     }
 
-    public ApiResponse updateUser(Users user, ReqUser  reqUser) {
-        if (user.getRole().getRole().equals(Role.ROLE_ADMIN)){
-            if (reqUser.getId() == null){
+    public ApiResponse updateUser(Users user, ReqUser reqUser) {
+        if (user.getRole().getRole().equals(Role.ROLE_ADMIN)) {
+            if (reqUser.getId() == null) {
                 boolean exists = userRepository.existsByEmailAndRole_RoleAndIdNot(user.getEmail(), Role.ROLE_ADMIN, reqUser.getId());
                 if (exists) {
                     return ApiResponse.builder()
@@ -82,7 +82,7 @@ public class UserService {
                 user.setFullName(reqUser.getFullName());
                 user.setPhoneNumber(reqUser.getPhoneNumber());
 
-                if (!reqUser.getEmail().equals(user.getEmail())){
+                if (!reqUser.getEmail().equals(user.getEmail())) {
                     user.setEmail(reqUser.getEmail());
                     Users save = userRepository.save(user);
                     String token = jwtProvider.generateToken(save.getEmail());
@@ -102,7 +102,7 @@ public class UserService {
                         .body(null)
                         .build();
 
-            }else {
+            } else {
                 user = userRepository.findById(reqUser.getId()).orElse(null);
                 if (user == null) {
                     return ApiResponse.builder()
@@ -124,11 +124,11 @@ public class UserService {
                         .status(HttpStatus.OK)
                         .body(null)
                         .build();
-        }
-    }else {
+            }
+        } else {
             user.setFullName(reqUser.getFullName());
             user.setPhoneNumber(reqUser.getPhoneNumber());
-            if (!reqUser.getEmail().equals(user.getEmail()) ) {
+            if (!reqUser.getEmail().equals(user.getEmail())) {
                 user.setEmail(reqUser.getEmail());
                 Users save = userRepository.save(user);
                 String token = jwtProvider.generateToken(save.getEmail());
@@ -139,7 +139,7 @@ public class UserService {
                         .status(HttpStatus.OK)
                         .body(null)
                         .build();
-}else {
+            } else {
                 userRepository.save(user);
                 return ApiResponse.builder()
                         .message("Success")
