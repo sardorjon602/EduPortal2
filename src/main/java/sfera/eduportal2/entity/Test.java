@@ -7,6 +7,8 @@ import lombok.*;
 import sfera.eduportal2.entity.Template.AbsEntity;
 import sfera.eduportal2.entity.enums.Difficulty;
 
+import java.sql.Time;
+
 @Getter
 @Setter
 @AllArgsConstructor
@@ -15,15 +17,12 @@ import sfera.eduportal2.entity.enums.Difficulty;
 @Builder
 public class Test extends AbsEntity {
 
-    private String title;
+    @ManyToOne
+    private Users user;
 
     @ManyToOne
     private Module module;
 
-    private Difficulty difficulty;
+    private Time timeLimit;
 
-    @ManyToOne
-    private Options options;
-
-    private Double timeLimit;
 }
