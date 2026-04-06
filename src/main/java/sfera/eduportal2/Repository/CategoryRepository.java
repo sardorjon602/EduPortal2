@@ -8,10 +8,13 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface CategoryRepository extends JpaRepository<Category,Long>{
-    Optional<Category> findByName(String name );
+public interface CategoryRepository extends JpaRepository<Category, Long> {
+    Optional<Category> findByName(String name);
+
     Optional<Category> findByNameContaining(String password);
+
     boolean existsByNameIgnoreCase(String name);
+
     boolean existsByNameIgnoreCaseAndIdNot(String name, Long id);
 
 }

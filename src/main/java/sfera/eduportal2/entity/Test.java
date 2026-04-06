@@ -27,4 +27,3 @@ public class Test extends AbsEntity {
 
     private Double timeLimit;
 }
-

@@ -23,8 +23,6 @@ public class DataLoader implements CommandLineRunner {
     @Value("${spring.jpa.hibernate.ddl-auto}")
     private String ddl;
 
-
-
     @Override
     public void run(String... args) throws Exception {
         if (ddl.equals("create") || ddl.equals("create-drop")) {
@@ -37,8 +35,6 @@ public class DataLoader implements CommandLineRunner {
                     .role(Role.ROLE_TEACHER)
                     .build();
             roleRepository.save(teacher);
-
-
             Roles user = Roles.builder()
                     .role(Role.ROLE_USER)
                     .build();

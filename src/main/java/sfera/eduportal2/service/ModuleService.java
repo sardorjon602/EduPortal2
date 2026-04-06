@@ -11,6 +11,7 @@ import sfera.eduportal2.Repository.CategoryRepository;
 import sfera.eduportal2.Repository.ModuleRepository;
 import sfera.eduportal2.entity.Category;
 import sfera.eduportal2.entity.Module;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -46,6 +47,7 @@ public class ModuleService {
                 .body(result)
                 .build();
     }
+
     public ApiResponse findById(Long id) {
 
         Optional<Module> optionalModule = moduleRepository.findById(id);

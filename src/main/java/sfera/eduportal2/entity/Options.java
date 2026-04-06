@@ -11,7 +11,7 @@ import sfera.eduportal2.entity.Template.AbsEntity;
 @NoArgsConstructor
 @Entity
 @Builder
-public class Options  extends AbsEntity {
+public class Options extends AbsEntity {
 
     @ManyToOne
     private Questions questions;
