@@ -30,7 +30,6 @@ public class ModuleService {
 
         for (Module module : modules) {
 
-            // BUG FIX: category null bo'lsa NPE chiqardi — endi xavfsiz
             String categoryName = (module.getCategory() != null)
                     ? module.getCategory().getName()
                     : "Noma'lum";
@@ -66,7 +65,6 @@ public class ModuleService {
 
         Module module = optionalModule.get();
 
-        // BUG FIX: category null bo'lsa NPE chiqardi — endi xavfsiz
         String categoryName = (module.getCategory() != null)
                 ? module.getCategory().getName()
                 : "Noma'lum";
@@ -112,7 +110,6 @@ public class ModuleService {
                 .category(optionalCategory.get())
                 .build();
 
-        // BUG FIX: .save() chaqirilmagan edi — module saqlanmayotgan edi
         moduleRepository.save(module);
 
         return ApiResponse.builder()
@@ -134,8 +131,6 @@ public class ModuleService {
                     .build();
         }
 
-        // BUG FIX: existsByModuleNameIgnoreCase o'zini ham bloklayotgan edi
-        // existsByModuleNameIgnoreCaseAndIdNot ishlatilishi kerak
         boolean exists = moduleRepository.existsByModuleNameIgnoreCaseAndIdNot(
                 reqModule.getTitle(), id
         );
@@ -160,11 +155,9 @@ public class ModuleService {
 
         Module module = optionalModule.get();
 
-        // BUG FIX: getContent() emas, getTitle() bo'lishi kerak
         module.setModuleName(reqModule.getTitle());
         module.setCategory(optionalCategory.get());
 
-        // BUG FIX: .save() chaqirilmagan edi — o'zgarish saqlanmayotgan edi
         moduleRepository.save(module);
 
         return ApiResponse.builder()
@@ -193,5 +186,11 @@ public class ModuleService {
                 .success(true)
                 .status(HttpStatus.OK)
                 .build();
+    }
+
+
+    public ApiResponse startTest(){
+
+        return null;
     }
 }
