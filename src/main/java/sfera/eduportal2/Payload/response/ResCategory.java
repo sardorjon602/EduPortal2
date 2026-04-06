@@ -12,5 +12,4 @@ public class ResCategory {
 
     private String name;
 
-    private String description;
 }

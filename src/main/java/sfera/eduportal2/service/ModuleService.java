@@ -6,10 +6,12 @@ import org.springframework.stereotype.Service;
 import sfera.eduportal2.Payload.ApiResponse;
 import sfera.eduportal2.Payload.request.RequestModule;
 import sfera.eduportal2.Payload.response.ResModule;
+import sfera.eduportal2.Payload.response.ResQuestions;
 import sfera.eduportal2.Repository.CategoryRepository;
 import sfera.eduportal2.Repository.ModuleRepository;
 import sfera.eduportal2.entity.Category;
 import sfera.eduportal2.entity.Module;
+import sfera.eduportal2.entity.Questions;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -119,6 +121,7 @@ public class ModuleService {
                 .message("Module saqlandi")
                 .success(true)
                 .status(HttpStatus.OK)
+                .body(toResModule(module))
                 .build();
     }
 
@@ -171,6 +174,7 @@ public class ModuleService {
                 .message("Module yangilandi")
                 .success(true)
                 .status(HttpStatus.OK)
+                .body(toResModule(module))
                 .build();
     }
 
@@ -192,6 +196,13 @@ public class ModuleService {
                 .message("Module o'chirildi")
                 .success(true)
                 .status(HttpStatus.OK)
+                .build();
+    }
+    private ResModule toResModule(Module module) {
+        return ResModule.builder()
+                .id(module.getId())
+                .moduleName(module.getModuleName())
+                .categoryName(module.getCategory().getName())
                 .build();
     }
 }

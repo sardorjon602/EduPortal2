@@ -6,8 +6,10 @@ import org.springframework.stereotype.Service;
 import sfera.eduportal2.Payload.ApiResponse;
 import sfera.eduportal2.Payload.request.RequestCategory;
 import sfera.eduportal2.Payload.response.ResCategory;
+import sfera.eduportal2.Payload.response.ResQuestions;
 import sfera.eduportal2.Repository.CategoryRepository;
 import sfera.eduportal2.entity.Category;
+import sfera.eduportal2.entity.Questions;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -85,6 +87,7 @@ public class CategoryService {
                 .message("Category successfully saved")
                 .success(true)
                 .status(HttpStatus.CREATED)
+                .body(toResCategory(category))
                 .build();
     }
 
@@ -116,6 +119,7 @@ public class CategoryService {
                 .message("Category successfully updated")
                 .success(true)
                 .status(HttpStatus.OK)
+                .body(toResCategory(category))
                 .build();
     }
 
@@ -135,6 +139,12 @@ public class CategoryService {
                 .message("Category successfully deleted")
                 .success(true)
                 .status(HttpStatus.OK)
+                .build();
+    }
+    private ResCategory toResCategory(Category category) {
+        return ResCategory.builder()
+                .id(category.getId())
+                .name(category.getName())
                 .build();
     }
 }

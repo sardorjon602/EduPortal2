@@ -36,7 +36,6 @@ public class QuestionsService {
 
         Questions question = Questions.builder()
                 .text(reqQuestions.getText())
-                .questionCount(reqQuestions.getQuestionCount())
                 .module(module.get())
                 .type(reqQuestions.getType().toUpperCase())
                 .build();
@@ -74,7 +73,6 @@ public class QuestionsService {
         }
         Questions questions = byId.get();
         questions.setText(reqQuestions.getText());
-        questions.setQuestionCount(reqQuestions.getQuestionCount());
         questions.setType(reqQuestions.getType().toUpperCase());
         questions.setModule(module.get());
 
@@ -148,9 +146,9 @@ public class QuestionsService {
 
     private ResQuestions toResQuestions(Questions questions) {
         return ResQuestions.builder()
+                .id(questions.getId())
                 .text(questions.getText())
                 .type(questions.getType())
-                .questionCount(questions.getQuestionCount())
                 .moduleId(questions.getModule().getId())
                 .moduleName(questions.getModule().getModuleName())
                 .build();

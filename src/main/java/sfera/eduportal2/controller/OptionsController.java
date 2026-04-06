@@ -7,6 +7,8 @@ import sfera.eduportal2.Payload.ApiResponse;
 import sfera.eduportal2.Payload.request.ReqOptions;
 import sfera.eduportal2.service.OptionsService;
 
+import java.util.List;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/options")
@@ -33,15 +35,14 @@ public class OptionsController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse> updateOptions(@PathVariable Long id,
-                                                     @RequestBody ReqOptions reqOptions) {
+    public ResponseEntity<ApiResponse> updateOptions(@PathVariable Long id,@RequestBody ReqOptions reqOptions) {
         ApiResponse response = optionsService.updateOption(id, reqOptions);
         return ResponseEntity.status(response.getStatus()).body(response);
     }
 
-    @PostMapping("/save")
-    public ResponseEntity<ApiResponse> saveOptions(@RequestBody ReqOptions reqOptions) {
-        ApiResponse response = optionsService.saveOption(reqOptions);
+    @PostMapping("/save-all/{questionId}")
+    public ResponseEntity<ApiResponse> saveOptions(@PathVariable Long questionId,@RequestBody List<ReqOptions> reqOptionsList) {
+        ApiResponse response = optionsService.saveOptions(questionId, reqOptionsList);
         return ResponseEntity.status(response.getStatus()).body(response);
     }
 }

@@ -10,9 +10,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ResQuestions {
+    private Long id;
     private String text;
     private String type;
-    private int questionCount;
     private Long moduleId;
     private String moduleName;
 }

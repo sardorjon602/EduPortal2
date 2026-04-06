@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ResOptions {
+    private Long id;
     private String text;
     private boolean isCorrect;
     private Long questionId;

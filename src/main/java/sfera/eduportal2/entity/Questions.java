@@ -22,6 +22,6 @@ public class Questions extends AbsEntity {
     @ManyToOne
     private Module module;
 
-    private Integer questionCount;
+
 
 }
