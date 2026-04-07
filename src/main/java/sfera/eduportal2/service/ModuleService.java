@@ -1,11 +1,10 @@
 package sfera.eduportal2.service;
 
-import jakarta.persistence.EntityGraph;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import sfera.eduportal2.Payload.ApiResponse;
-import sfera.eduportal2.Payload.request.RequestModule;
+import sfera.eduportal2.Payload.request.ReqModule;
 import sfera.eduportal2.Payload.response.ResModule;
 import sfera.eduportal2.Repository.CategoryRepository;
 import sfera.eduportal2.Repository.ModuleRepository;
@@ -25,7 +24,6 @@ public class ModuleService {
     public ApiResponse findAll() {
 
         List<Module> modules = moduleRepository.findAll();
-
         List<ResModule> result = new ArrayList<>();
 
         for (Module module : modules) {
@@ -76,7 +74,7 @@ public class ModuleService {
     }
 
 
-    public ApiResponse save(RequestModule reqModule) {
+    public ApiResponse save(ReqModule reqModule) {
 
         boolean exists =
                 moduleRepository.existsByModuleNameIgnoreCase(
@@ -120,7 +118,7 @@ public class ModuleService {
     }
 
 
-    public ApiResponse update(Long id, RequestModule reqModule) {
+    public ApiResponse update(Long id, ReqModule reqModule) {
 
         Optional<Module> optionalModule =
                 moduleRepository.findById(Long.valueOf(id));

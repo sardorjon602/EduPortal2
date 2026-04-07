@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import sfera.eduportal2.Payload.ApiResponse;
-import sfera.eduportal2.Payload.request.RequestCategory;
+import sfera.eduportal2.Payload.request.ReqCategory;
 import sfera.eduportal2.Payload.response.ResCategory;
 import sfera.eduportal2.Repository.CategoryRepository;
 import sfera.eduportal2.entity.Category;
@@ -65,7 +65,7 @@ public class CategoryService {
                 .build();
     }
 
-    public ApiResponse save(RequestCategory requestCategory) {
+    public ApiResponse save(ReqCategory requestCategory) {
         boolean exists = categoryRepository.existsByNameIgnoreCase(requestCategory.getName());
         if (exists) {
             return ApiResponse.builder()
@@ -89,7 +89,7 @@ public class CategoryService {
     }
 
 
-    public ApiResponse update(Long id, RequestCategory requestCategory) {
+    public ApiResponse update(Long id, ReqCategory requestCategory) {
         Optional<Category> optional = categoryRepository.findById(id);
         if (optional.isEmpty()) {
             return ApiResponse.builder()
@@ -137,6 +137,14 @@ public class CategoryService {
                 .status(HttpStatus.OK)
                 .build();
     }
+    public ApiResponse increaseQuestionCount(Long categoryId) {
+
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new RuntimeException("Category not found"));
+
+        category.setQuestionCount(category.getQuestionCount() + 1);
+
+        categoryRepository.save(category);
+        return null;
+    }
 }
-
-
