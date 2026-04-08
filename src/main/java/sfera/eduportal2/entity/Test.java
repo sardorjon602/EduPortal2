@@ -17,6 +17,8 @@ import java.sql.Time;
 @Builder
 public class Test extends AbsEntity {
 
+    String name;
+
     @ManyToOne
     private Users user;
 

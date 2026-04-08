@@ -7,7 +7,4 @@ import sfera.eduportal2.entity.Test;
 @Repository
 public interface TestRepository extends JpaRepository<Test, Long> {
 
-    boolean existsByTitleIgnoreCase(String title);
-
-    boolean existsByTitleIgnoreCaseAndIdNot(String title, Long id);
 }
