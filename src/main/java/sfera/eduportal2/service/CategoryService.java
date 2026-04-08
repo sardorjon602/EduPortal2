@@ -4,12 +4,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import sfera.eduportal2.Payload.ApiResponse;
-import sfera.eduportal2.Payload.request.RequestCategory;
+import sfera.eduportal2.Payload.request.ReqCategory;
 import sfera.eduportal2.Payload.response.ResCategory;
-import sfera.eduportal2.Payload.response.ResQuestions;
 import sfera.eduportal2.Repository.CategoryRepository;
 import sfera.eduportal2.entity.Category;
-import sfera.eduportal2.entity.Questions;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +28,7 @@ public class CategoryService {
             ResCategory res = ResCategory.builder()
                     .id(category.getId())
                     .name(category.getName())
+                    .questionCount(category.getQuestionCount())
                     .build();
             resList.add(res);
         }
@@ -57,6 +56,7 @@ public class CategoryService {
         ResCategory res = ResCategory.builder()
                 .id(category.getId())
                 .name(category.getName())
+                .questionCount(category.getQuestionCount())
                 .build();
 
         return ApiResponse.builder()
@@ -67,7 +67,7 @@ public class CategoryService {
                 .build();
     }
 
-    public ApiResponse save(RequestCategory requestCategory) {
+    public ApiResponse save(ReqCategory requestCategory) {
         boolean exists = categoryRepository.existsByNameIgnoreCase(requestCategory.getName());
         if (exists) {
             return ApiResponse.builder()
@@ -79,6 +79,7 @@ public class CategoryService {
 
         Category category = Category.builder()
                 .name(requestCategory.getName())
+                .questionCount(requestCategory.getQuestionCount())
                 .build();
 
         categoryRepository.save(category);
@@ -87,12 +88,11 @@ public class CategoryService {
                 .message("Category successfully saved")
                 .success(true)
                 .status(HttpStatus.CREATED)
-                .body(toResCategory(category))
                 .build();
     }
 
 
-    public ApiResponse update(Long id, RequestCategory requestCategory) {
+    public ApiResponse update(Long id, ReqCategory requestCategory) {
         Optional<Category> optional = categoryRepository.findById(id);
         if (optional.isEmpty()) {
             return ApiResponse.builder()
@@ -109,17 +109,29 @@ public class CategoryService {
                     .success(false)
                     .status(HttpStatus.CONFLICT)
                     .build();
+
+
+
+
+
+
+
+
+
+
+
+
         }
 
         Category category = optional.get();
         category.setName(requestCategory.getName());
+        category.setQuestionCount(requestCategory.getQuestionCount());
         categoryRepository.save(category);
 
         return ApiResponse.builder()
                 .message("Category successfully updated")
                 .success(true)
                 .status(HttpStatus.OK)
-                .body(toResCategory(category))
                 .build();
     }
 
@@ -141,12 +153,4 @@ public class CategoryService {
                 .status(HttpStatus.OK)
                 .build();
     }
-    private ResCategory toResCategory(Category category) {
-        return ResCategory.builder()
-                .id(category.getId())
-                .name(category.getName())
-                .build();
-    }
 }
-
-

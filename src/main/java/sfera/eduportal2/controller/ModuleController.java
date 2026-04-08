@@ -3,11 +3,11 @@ package sfera.eduportal2.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import sfera.eduportal2.Payload.ApiResponse;
-import sfera.eduportal2.Payload.request.RequestModule;
+import sfera.eduportal2.Payload.request.ReqModule;
 import sfera.eduportal2.service.ModuleService;
 
 @RestController
-@RequestMapping("/module")
+@RequestMapping("module")
 @RequiredArgsConstructor
 public class ModuleController {
     private final ModuleService moduleService;
@@ -24,12 +24,12 @@ public class ModuleController {
     }
 
     @PostMapping("/save")
-    public ApiResponse save (@RequestBody RequestModule requestModule){
+    public ApiResponse save (@RequestBody ReqModule requestModule){
         return moduleService.save(requestModule);
     }
 
     @PutMapping("/update/{id}")
-    public ApiResponse update(@PathVariable Long id,@RequestBody RequestModule requestModule){
+    public ApiResponse update(@PathVariable Long id,@RequestBody ReqModule requestModule){
     return moduleService.update(id,requestModule);
     }
 

@@ -4,9 +4,10 @@ import lombok.*;
 
 @Getter
 @Setter
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 @Builder
-public class RequestCategory {
+public class ReqCategory {
     private String name;
+    private Integer questionCount;
 }

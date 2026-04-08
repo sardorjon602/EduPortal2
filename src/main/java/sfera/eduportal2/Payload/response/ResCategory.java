@@ -4,12 +4,11 @@ import lombok.*;
 
 @Getter
 @Setter
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 @Builder
 public class ResCategory {
     private Long id;
-
     private String name;
-
+    private Integer questionCount;
 }
