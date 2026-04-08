@@ -109,6 +109,7 @@ public class ModuleService {
                 .category(optionalCategory.get())
                 .build();
 
+        moduleRepository.save(module);
 
         return ApiResponse.builder()
                 .message("Module saqlandi")
