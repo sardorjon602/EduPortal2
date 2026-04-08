@@ -17,9 +17,6 @@ public class ReqTest {
 
     private Long userId;
 
-    private Difficulty difficulty;
-
-
     private Time timeLimit;
 
 }

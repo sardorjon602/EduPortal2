@@ -1,50 +1,59 @@
 package sfera.eduportal2.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+// import org.springframework.security.access.prepost.PreAuthorize; // Agar Spring Security ulangan bo'lsa
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import sfera.eduportal2.Payload.ApiResponse;
+import sfera.eduportal2.Payload.request.ReqStartTest;
+import sfera.eduportal2.Payload.request.ReqStopTest;
 import sfera.eduportal2.Payload.request.ReqTest;
 import sfera.eduportal2.service.TestService;
 
 @RestController
+@RequestMapping("/api/tests")
 @RequiredArgsConstructor
-@RequestMapping("/test")
-
 public class TestController {
-
 
     private final TestService testService;
 
-    @GetMapping("/list")
-    public ResponseEntity<ApiResponse> getAll() {
-        ApiResponse response = testService.findAll();
-        return ResponseEntity.ok(response);
-    }
+    // ----- ADMIN ENDPOINTLARI -----
 
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse> getOne(@PathVariable Long id) {
-        ApiResponse response = testService.findById(id);
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/save")
-    public ResponseEntity<ApiResponse> save(@RequestBody ReqTest reqTest) {
-        ApiResponse response = testService.save(reqTest);
-        return ResponseEntity.ok(response);
-    }
-
-    @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse> update(@PathVariable Long id, @RequestBody ReqTest reqTest) {
-        ApiResponse response = testService.update(id, reqTest);
-        return ResponseEntity.ok(response);
+     @PreAuthorize("hasRole('ROLE_ADMIN')") // Faqat admin kiroladi
+    @PostMapping("/create")
+    public ResponseEntity<ApiResponse> createTest(@RequestBody ReqTest reqTest) {
+        ApiResponse response = testService.createTest(reqTest);
+        return ResponseEntity.status(response.getStatus()).body(response);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse> delete(@PathVariable Long id) {
-        ApiResponse response = testService.delete(id);
-        return ResponseEntity.ok(response);
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<ApiResponse> deleteTest(@PathVariable Long id) {
+        ApiResponse response = testService.deleteTest(id);
+        return ResponseEntity.status(response.getStatus()).body(response);
+    }
+
+     @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PutMapping("/update/{id}")
+    public ResponseEntity<ApiResponse> updateTest(@PathVariable Long id, @RequestBody ReqTest reqTest) {
+         ApiResponse response = testService.updateTest(id, reqTest);
+         return ResponseEntity.status(response.getStatus()).body(response);
     }
 
 
+    // ----- O'QUVCHI (USER) ENDPOINTLARI -----
+
+    @PostMapping("/start")
+    public ResponseEntity<ApiResponse> startTest(@RequestBody ReqStartTest request) {
+        ApiResponse response = testService.startTest(request);
+        return ResponseEntity.status(response.getStatus()).body(response);
+    }
+
+    @PostMapping("/stop")
+    public ResponseEntity<ApiResponse> stopTest(@RequestBody ReqStopTest request) {
+        ApiResponse response = testService.stopTest(request);
+        return ResponseEntity.status(response.getStatus()).body(response);
+    }
 }

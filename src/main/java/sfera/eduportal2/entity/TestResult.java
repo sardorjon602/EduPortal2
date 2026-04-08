@@ -7,6 +7,7 @@ import jakarta.persistence.OneToOne;
 import lombok.*;
 import sfera.eduportal2.entity.Template.AbsEntity;
 
+import java.time.LocalDateTime;
 import java.util.Date;
 
 @Getter
@@ -25,5 +26,5 @@ public class TestResult extends AbsEntity {
 
     private Double score;
 
-    private Date takenAt;
+    private LocalDateTime takenAt;
 }

@@ -16,6 +16,7 @@
 //    // Web-saytdan keladigan so'rovlarni qabul qilish uchun DTO
 //    public record RecommendationRequest(String studentName, int testScore, String interests) {}
 //
+//
 //    @PostMapping("/recommend-course")
 //    public String recommendCourse(@RequestBody RecommendationRequest request) {
 //        // Front-end'dan kelgan ma'lumotlarni AI service'ga uzatamiz

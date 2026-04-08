@@ -18,8 +18,6 @@ public class ResTest {
 
     private Long userId;
 
-    private Difficulty  difficulty;
-
 
     private Time timeLimit;
 
