@@ -37,7 +37,7 @@ public class QuestionsService {
         Questions question = Questions.builder()
                 .text(reqQuestions.getText())
                 .module(module.get())
-                .type(reqQuestions.getType().toUpperCase())
+                .type(reqQuestions.getType())
                 .build();
 
 
@@ -73,7 +73,7 @@ public class QuestionsService {
         }
         Questions questions = byId.get();
         questions.setText(reqQuestions.getText());
-        questions.setType(reqQuestions.getType().toUpperCase());
+        questions.setType(reqQuestions.getType());
         questions.setModule(module.get());
 
         questionsRepository.save(questions);
