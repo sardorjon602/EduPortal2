@@ -7,35 +7,41 @@ import sfera.eduportal2.Payload.request.ReqCategory;
 import sfera.eduportal2.service.CategoryService;
 
 @RestController
-@RequestMapping("category")
+@RequestMapping("/category")
 @RequiredArgsConstructor
 
 
 
 
 public class CategoryController {
-    private final CategoryService CategoryService;
-    @GetMapping
+    private final CategoryService categoryService;
+
+    @GetMapping("/list")
     public ApiResponse getAll() {
-        return CategoryService.findAll();
+        return categoryService.findAll();
     }
+
+
     @GetMapping("/{id}")
     public ApiResponse getById(@PathVariable Long id) {
-        return CategoryService.findById(id);
+        return categoryService.findById(id);
     }
-    @PostMapping
+
+
+
+    @PostMapping("/create")
     public ApiResponse create(@RequestBody ReqCategory requestCategory) {
-        return CategoryService.save(requestCategory);
+        return categoryService.save(requestCategory);
     }
 
     @PutMapping("/{id}")
     public ApiResponse update(@PathVariable Long id, @RequestBody ReqCategory requestCategory) {
-        return CategoryService.update(id, requestCategory);
+        return categoryService.update(id, requestCategory);
     }
 
     @DeleteMapping("/{id}")
     public ApiResponse delete(@PathVariable Long id) {
-        return CategoryService.delete(id);
+        return categoryService.delete(id);
     }
 }
 

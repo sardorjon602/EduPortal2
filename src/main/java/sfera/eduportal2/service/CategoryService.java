@@ -28,6 +28,7 @@ public class CategoryService {
             ResCategory res = ResCategory.builder()
                     .id(category.getId())
                     .name(category.getName())
+                    .questionCount(category.getQuestionCount())
                     .build();
             resList.add(res);
         }
@@ -55,6 +56,7 @@ public class CategoryService {
         ResCategory res = ResCategory.builder()
                 .id(category.getId())
                 .name(category.getName())
+                .questionCount(category.getQuestionCount())
                 .build();
 
         return ApiResponse.builder()
@@ -77,6 +79,7 @@ public class CategoryService {
 
         Category category = Category.builder()
                 .name(requestCategory.getName())
+                .questionCount(requestCategory.getQuestionCount())
                 .build();
 
         categoryRepository.save(category);
@@ -110,6 +113,7 @@ public class CategoryService {
 
         Category category = optional.get();
         category.setName(requestCategory.getName());
+        category.setQuestionCount(requestCategory.getQuestionCount());
         categoryRepository.save(category);
 
         return ApiResponse.builder()
@@ -136,15 +140,5 @@ public class CategoryService {
                 .success(true)
                 .status(HttpStatus.OK)
                 .build();
-    }
-    public ApiResponse increaseQuestionCount(Long categoryId) {
-
-        Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new RuntimeException("Category not found"));
-
-        category.setQuestionCount(category.getQuestionCount() + 1);
-
-        categoryRepository.save(category);
-        return null;
     }
 }
