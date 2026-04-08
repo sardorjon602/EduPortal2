@@ -6,9 +6,12 @@ import org.springframework.stereotype.Service;
 import sfera.eduportal2.Payload.ApiResponse;
 import sfera.eduportal2.Payload.request.ReqTest;
 import sfera.eduportal2.Payload.response.ResTest;
+import sfera.eduportal2.Repository.ModuleRepository;
 import sfera.eduportal2.Repository.TestRepository;
-import sfera.eduportal2.entity.Options;
+import sfera.eduportal2.Repository.UserRepository;// Users repository import qilindi
+import sfera.eduportal2.entity.Module;
 import sfera.eduportal2.entity.Test;
+import sfera.eduportal2.entity.Users;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,28 +19,26 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
-
 public class TestService {
 
-
     private final TestRepository testRepository;
-//    private final ModuleRepository moduleRepository;
-//    private final OptionsRepository optionsRepository;
+    private final ModuleRepository moduleRepository;
+    private final UserRepository usersRepository; // Service'ga qo'shildi
 
     public ApiResponse findAll() {
         List<Test> all = testRepository.findAll();
         List<ResTest> resTests = new ArrayList<>();
+
         for (Test test : all) {
             ResTest resTest = ResTest.builder()
                     .id(test.getId())
-                    .title(test.getTitle())
-//                    .moduleName(test.getModule().getTitle())
-//                    .difficulty(test.getDifficulty())
-//                    .optionName(test.getOptions().getName())
+                    .userId(test.getUser() != null ? test.getUser().getId() : null) // User ID qaytarish
+                    .moduleName(test.getModule().getModuleName())
                     .timeLimit(test.getTimeLimit())
                     .build();
             resTests.add(resTest);
         }
+
         return ApiResponse.builder()
                 .message("Success")
                 .success(true)
@@ -55,15 +56,15 @@ public class TestService {
                     .status(HttpStatus.NOT_FOUND)
                     .build();
         }
+
         Test test = optional.get();
         ResTest resTest = ResTest.builder()
                 .id(test.getId())
-                .title(test.getTitle())
-//                .moduleName(test.getModule().getTitle())
-//                .difficulty(test.getDifficulty())
-//                .optionName(test.getOptions().getName())
+                .userId(test.getUser() != null ? test.getUser().getId() : null)
+                .moduleName(test.getModule().getModuleName())
                 .timeLimit(test.getTimeLimit())
                 .build();
+
         return ApiResponse.builder()
                 .message("Success")
                 .success(true)
@@ -73,46 +74,37 @@ public class TestService {
     }
 
     public ApiResponse save(ReqTest reqTest) {
-        boolean exists = testRepository.existsByTitleIgnoreCase(reqTest.getTitle());
-        if (exists) {
+        Optional<Module> moduleOptional = moduleRepository.findById(reqTest.getModuleId());
+        if (moduleOptional.isEmpty()) {
             return ApiResponse.builder()
-                    .message("Test already exists")
+                    .message("Module not found")
                     .success(false)
-                    .status(HttpStatus.BAD_REQUEST)
+                    .status(HttpStatus.NOT_FOUND)
                     .build();
         }
 
-//        Optional<Module> moduleOptional = moduleRepository.findById(reqTest.getModuleId());
-//        if (moduleOptional.isEmpty()) {
-//            return ApiResponse.builder()
-//                    .message("Module not found")
-//                    .success(false)
-//                    .status(HttpStatus.NOT_FOUND)
-//                    .build();
-//        }
-//
-//        Optional<Options> optionsOptional = optionsRepository.findById(reqTest.getOptionId());
-//        if (optionsOptional.isEmpty()) {
-//            return ApiResponse.builder()
-//                    .message("Option not found")
-//                    .success(false)
-//                    .status(HttpStatus.NOT_FOUND)
-//                    .build();
-//        }
-//
-//        Test test = Test.builder()
-//                .title(reqTest.getTitle())
-//                .module(moduleOptional.get())
-//                .difficulty(reqTest.getDifficulty())
-//                .options(optionsOptional.get())
-//                .timeLimit(reqTest.getTimeLimit())
-//                .build();
-//        testRepository.save(test);
+        // Userni bazadan qidirish
+        Optional<Users> userOptional = usersRepository.findById(reqTest.getUserId());
+        if (userOptional.isEmpty()) {
+            return ApiResponse.builder()
+                    .message("User not found")
+                    .success(false)
+                    .status(HttpStatus.NOT_FOUND)
+                    .build();
+        }
+
+        Test test = Test.builder()
+                .user(userOptional.get()) // Userni saqlash
+                .module(moduleOptional.get())
+                .timeLimit(reqTest.getTimeLimit())
+                .build();
+
+        testRepository.save(test);
 
         return ApiResponse.builder()
                 .message("Test successfully saved")
                 .success(true)
-                .status(HttpStatus.OK)
+                .status(HttpStatus.CREATED)
                 .build();
     }
 
@@ -126,39 +118,29 @@ public class TestService {
                     .build();
         }
 
-        boolean titleExists = testRepository.existsByTitleIgnoreCaseAndIdNot(reqTest.getTitle(), id);
-        if (titleExists) {
+        Optional<Module> moduleOptional = moduleRepository.findById(reqTest.getModuleId());
+        if (moduleOptional.isEmpty()) {
             return ApiResponse.builder()
-                    .message("Test with this title already exists")
+                    .message("Module not found")
                     .success(false)
-                    .status(HttpStatus.BAD_REQUEST)
+                    .status(HttpStatus.NOT_FOUND)
                     .build();
         }
 
-//        Optional<Module> moduleOptional = moduleRepository.findById(reqTest.getModuleId());
-//        if (moduleOptional.isEmpty()) {
-//            return ApiResponse.builder()
-//                    .message("Module not found")
-//                    .success(false)
-//                    .status(HttpStatus.NOT_FOUND)
-//                    .build();
-//        }
-
-//        Optional<Options> optionsOptional = optionsRepository.findById(reqTest.getOptionId());
-//        if (optionsOptional.isEmpty()) {
-//            return ApiResponse.builder()
-//                    .message("Option not found")
-//                    .success(false)
-//                    .status(HttpStatus.NOT_FOUND)
-//                    .build();
-//        }
+        Optional<Users> userOptional = usersRepository.findById(reqTest.getUserId());
+        if (userOptional.isEmpty()) {
+            return ApiResponse.builder()
+                    .message("User not found")
+                    .success(false)
+                    .status(HttpStatus.NOT_FOUND)
+                    .build();
+        }
 
         Test toUpdate = optional.get();
-        toUpdate.setTitle(reqTest.getTitle());
-//        toUpdate.setModule(moduleOptional.get());
-//        toUpdate.setDifficulty(reqTest.getDifficulty());
-//        toUpdate.setOptions(optionsOptional.get());
+        toUpdate.setUser(userOptional.get()); // Userni yangilash
+        toUpdate.setModule(moduleOptional.get());
         toUpdate.setTimeLimit(reqTest.getTimeLimit());
+
         testRepository.save(toUpdate);
 
         return ApiResponse.builder()
@@ -177,15 +159,13 @@ public class TestService {
                     .status(HttpStatus.NOT_FOUND)
                     .build();
         }
+
         testRepository.delete(optional.get());
+
         return ApiResponse.builder()
                 .message("Test successfully deleted")
                 .success(true)
                 .status(HttpStatus.OK)
                 .build();
     }
-
-
-
-
 }

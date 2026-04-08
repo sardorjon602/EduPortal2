@@ -1,4 +1,5 @@
 package sfera.eduportal2.Security;
+
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -26,30 +27,32 @@ public class JwtProvider {
                 .signWith(SignatureAlgorithm.HS256, secretKey)
                 .compact();
     }
+
     public String getEmailFromToken(String token) {
-        try{
+        try {
             return Jwts.parser()
                     .setSigningKey(secretKey)
                     .parseClaimsJws(token)
                     .getBody()
                     .getSubject();
-        }catch (ExpiredJwtException e){
-            throw  new JwtException("Jwt token has expired" + e.getMessage());
-        }catch (SignatureException e){
-            throw  new JwtException("Jwt token signature exception" + e.getMessage());
-        }catch (JwtException e){
-            throw  new JwtException("Jwt exception" + e.getMessage());
+        } catch (ExpiredJwtException e) {
+            throw new JwtException("Jwt token has expired" + e.getMessage());
+        } catch (SignatureException e) {
+            throw new JwtException("Jwt token signature exception" + e.getMessage());
+        } catch (JwtException e) {
+            throw new JwtException("Jwt exception" + e.getMessage());
         }
     }
-    public boolean isValid(String token){
+
+    public boolean isValid(String token) {
         try {
             Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token);
             return true;
-        }catch (ExpiredJwtException e){
+        } catch (ExpiredJwtException e) {
             throw new JwtException("Jwt token has expired" + e.getMessage());
-        }catch (SignatureException e){
+        } catch (SignatureException e) {
             throw new JwtException("Invalid JWT signature" + e.getMessage());
-        }catch(Exception e){
+        } catch (Exception e) {
             throw new JwtException("Invalid JWT token" + e.getMessage());
         }
     }

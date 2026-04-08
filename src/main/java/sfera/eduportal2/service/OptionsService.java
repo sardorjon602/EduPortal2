@@ -9,6 +9,7 @@ import sfera.eduportal2.Payload.response.ResOptions;
 import sfera.eduportal2.Repository.OptionsRepository;
 import sfera.eduportal2.Repository.QuestionsRepository;
 import sfera.eduportal2.entity.Options;
+import sfera.eduportal2.entity.Questions;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,17 +22,11 @@ public class OptionsService {
     private final OptionsRepository optionsRepository;
     private final QuestionsRepository questionsRepository;
 
-    public ApiResponse findAll(){
+    public ApiResponse findAll() {
         List<Options> optionsList = optionsRepository.findAll();
         List<ResOptions> resOptionsList = new ArrayList<>();
         for (Options options : optionsList) {
-            ResOptions resOptions = ResOptions.builder()
-                    .text(options.getText())
-                    .questions(options.getQuestions())
-                    .isCorrect(options.isCorrect())
-                    .build();
-            resOptionsList.add(resOptions);
-
+            resOptionsList.add(toResOptions(options));
         }
         return ApiResponse.builder()
                 .message("Success")
@@ -42,8 +37,8 @@ public class OptionsService {
     }
 
     public ApiResponse findById(Long id) {
-        Optional<Options> byText = optionsRepository.findById(id);
-        if(byText.isEmpty()){
+        Optional<Options> byId = optionsRepository.findById(id);
+        if (byId.isEmpty()) {
             return ApiResponse.builder()
                     .message("Option not found!")
                     .success(false)
@@ -51,36 +46,75 @@ public class OptionsService {
                     .body(null)
                     .build();
         }
-        Options options = byText.get();
-            ResOptions resOptions = ResOptions.builder()
-                    .text(options.getText())
-                    .isCorrect(options.isCorrect())
-                    .questions(options.getQuestions())
-                    .build();
         return ApiResponse.builder()
                 .message("Success")
                 .success(true)
                 .status(HttpStatus.OK)
-                .body(resOptions)
+                .body(toResOptions(byId.get()))
                 .build();
     }
-    public ApiResponse saveOption(Options options) {
-        Options options1 = Options.builder()
-                .text(options.getText())
-                .isCorrect(options.isCorrect())
-                .questions(options.getQuestions())
-                .build();
-        optionsRepository.save(options1);
+
+    public ApiResponse saveOptions(Long questionId, List<ReqOptions> reqOptionsList) {
+        Optional<Questions> questionOpt = questionsRepository.findById(questionId);
+        if (questionOpt.isEmpty()) {
+            return ApiResponse.builder()
+                    .message("Question not found!")
+                    .success(false)
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(null)
+                    .build();
+        }
+
+        long trueCount = reqOptionsList.stream()
+                .filter(ReqOptions::isCorrect)
+                .count();
+
+        if (trueCount != 1) {
+            return ApiResponse.builder()
+                    .message("Exactly one option must be correct!")
+                    .success(false)
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(null)
+                    .build();
+        }
+
+        boolean alreadyHasCorrect = optionsRepository.existsByQuestionsIdAndIsCorrectTrue(questionId);
+        if (alreadyHasCorrect) {
+            return ApiResponse.builder()
+                    .message("This question already has a correct option!")
+                    .success(false)
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(null)
+                    .build();
+        }
+
+        List<Options> optionsList = new ArrayList<>();
+        for (ReqOptions reqOptions : reqOptionsList) {
+            Options options = Options.builder()
+                    .text(reqOptions.getText())
+                    .isCorrect(reqOptions.isCorrect())
+                    .questions(questionOpt.get())
+                    .build();
+            optionsList.add(options);
+        }
+
+        List<Options> savedOptions = optionsRepository.saveAll(optionsList);
+
+        List<ResOptions> resOptionsList = savedOptions.stream()
+                .map(this::toResOptions)
+                .toList();
+
         return ApiResponse.builder()
-                .message("Option saved successfully!")
+                .message("Options saved successfully!")
                 .success(true)
-                .status(HttpStatus.OK)
-                .body(options1)
+                .status(HttpStatus.CREATED)
+                .body(resOptionsList)
                 .build();
     }
+
     public ApiResponse updateOption(Long id, ReqOptions reqOptions) {
         Optional<Options> byId = optionsRepository.findById(id);
-        if(byId.isEmpty()){
+        if (byId.isEmpty()) {
             return ApiResponse.builder()
                     .message("Option not found!")
                     .success(false)
@@ -88,33 +122,73 @@ public class OptionsService {
                     .body(null)
                     .build();
         }
+
+        Optional<Questions> questions = questionsRepository.findById(reqOptions.getQuestionId());
+        if (questions.isEmpty()) {
+            return ApiResponse.builder()
+                    .message("Question not found!")
+                    .success(false)
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(null)
+                    .build();
+        }
+
+        if (reqOptions.isCorrect()) {
+            boolean anotherCorrectExists = optionsRepository
+                    .existsByQuestionsIdAndIsCorrectTrueAndIdNot(
+                            reqOptions.getQuestionId(), id
+                    );
+            if (anotherCorrectExists) {
+                return ApiResponse.builder()
+                        .message("This question already has a correct option!")
+                        .success(false)
+                        .status(HttpStatus.BAD_REQUEST)
+                        .body(null)
+                        .build();
+            }
+        }
+
         Options options = byId.get();
         options.setText(reqOptions.getText());
         options.setCorrect(reqOptions.isCorrect());
-        options.setQuestions(reqOptions.getQuestions());
+        options.setQuestions(questions.get());
+
         optionsRepository.save(options);
+
         return ApiResponse.builder()
                 .message("Option successfully updated")
                 .success(true)
                 .status(HttpStatus.OK)
+                .body(toResOptions(options))
                 .build();
     }
+
     public ApiResponse deleteOption(Long id) {
-        Optional<Options> options = optionsRepository.findById(id);
-        if (options.isPresent()){
-            Options options1 = options.get();
+        Optional<Options> byId = optionsRepository.findById(id);
+        if (byId.isPresent()) {
+            optionsRepository.delete(byId.get());
             return ApiResponse.builder()
                     .message("Option deleted successfully")
                     .success(true)
                     .status(HttpStatus.OK)
-                    .body(options1)
+                    .body(null)
                     .build();
         }
         return ApiResponse.builder()
                 .message("Option not found!")
                 .success(false)
                 .status(HttpStatus.NOT_FOUND)
-                .body(options)
+                .body(null)
+                .build();
+    }
+
+    private ResOptions toResOptions(Options options) {
+        return ResOptions.builder()
+                .id(options.getId())
+                .text(options.getText())
+                .isCorrect(options.isCorrect())
+                .questionId(options.getQuestions().getId())
+                .questionText(options.getQuestions().getText())
                 .build();
     }
 }

@@ -3,6 +3,8 @@ package sfera.eduportal2.Payload.request;
 import lombok.*;
 import sfera.eduportal2.entity.enums.Difficulty;
 
+import java.sql.Time;
+
 @Getter
 @Setter
 @AllArgsConstructor
@@ -10,14 +12,14 @@ import sfera.eduportal2.entity.enums.Difficulty;
 @Builder
 public class ReqTest {
 
-    private String title;
 
     private Long moduleId;
 
-    private Difficulty  difficulty;
+    private Long userId;
 
-    private Long optionId;
+    private Difficulty difficulty;
 
-    private Double timeLimit;
+
+    private Time timeLimit;
 
 }

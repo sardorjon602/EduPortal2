@@ -1,18 +1,18 @@
 package sfera.eduportal2.Payload.response;
 
-import jakarta.persistence.ManyToOne;
-import lombok.*;
-import sfera.eduportal2.entity.Questions;
-@Getter
-@Setter
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
 public class ResOptions {
-    @ManyToOne
-    private Questions questions;
-
-    private boolean isCorrect;
-
+    private Long id;
     private String text;
+    private boolean isCorrect;
+    private Long questionId;
+    private String questionText;
 }

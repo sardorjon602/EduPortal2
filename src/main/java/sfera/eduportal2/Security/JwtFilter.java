@@ -42,32 +42,33 @@ public class JwtFilter extends OncePerRequestFilter {
             return;
         }
         String authorization = request.getHeader("Authorization");
-        if(authorization != null && authorization.startsWith("Bearer ")) {
+        if (authorization != null && authorization.startsWith("Bearer ")) {
             String token = authorization.substring(7);
-            try{
-              if (jwtProvider.isValid(token)) {
-                  String email = jwtProvider.getEmailFromToken(token);
-                  UserDetails userDetails = userDetailsService.loadUserByUsername(email);
-                  UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
-                          userDetails,
-                          null,
-                          userDetails.getAuthorities());
-                  authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                  SecurityContextHolder.getContext().setAuthentication(authenticationToken);
-              }
-            }catch(Exception e){
-                handleException(response,e.getMessage());
+            try {
+                if (jwtProvider.isValid(token)) {
+                    String email = jwtProvider.getEmailFromToken(token);
+                    UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+                    UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
+                            userDetails,
+                            null,
+                            userDetails.getAuthorities());
+                    authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+                }
+            } catch (Exception e) {
+                handleException(response, e.getMessage());
                 return;
             }
         }
-        doFilter(request,response,filterChain);
+        doFilter(request, response, filterChain);
     }
 
-    private boolean isWhiteListed(String path){
+    private boolean isWhiteListed(String path) {
         AntPathMatcher matcher = new AntPathMatcher();
         return Arrays.stream(whitelist).anyMatch(pattern -> matcher.match(pattern, path));
     }
-    private void handleException(HttpServletResponse response,String message) throws  IOException {
+
+    private void handleException(HttpServletResponse response, String message) throws IOException {
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
         response.setContentType("application/json");
         response.getWriter().write(new ObjectMapper().writeValueAsString(message));

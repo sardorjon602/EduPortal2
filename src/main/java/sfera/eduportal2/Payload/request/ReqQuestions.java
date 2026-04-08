@@ -1,19 +1,16 @@
 package sfera.eduportal2.Payload.request;
 
-import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotBlank;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@Data
 @Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class ReqQuestions {
-    @Schema(hidden = true)
-    private Long id;
-
-    @NotBlank(message = "Dont leave blank spaces")
     private String text;
-
+    private String type;
+    private Long moduleId;
 }

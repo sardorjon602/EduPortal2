@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Configuration;
 @OpenAPIDefinition(
         info = @Info(title = "EduPortal", version = "v1",
                 description = "This swagger is fo EduPortal",
-                contact = @Contact(name = "Haqqulov Sardor", url = "https://t.me/sardor_coder00",email = "haqqulovsardor75@gmail.com"),
+                contact = @Contact(name = "Haqqulov Sardor", url = "https://t.me/sardor_coder00", email = "haqqulovsardor75@gmail.com"),
                 license = @License(name = "Apache foundation", url = "hhtps://apache.org")
         ),
         security = {
