@@ -1,166 +1,130 @@
-//package sfera.eduportal2.service;
-//
-//import lombok.RequiredArgsConstructor;
-//import org.springframework.http.HttpStatus;
-//import org.springframework.stereotype.Service;
-//import sfera.eduportal2.Payload.ApiResponse;
-//import sfera.eduportal2.Payload.request.ReqTestResult;
-//import sfera.eduportal2.Payload.response.ResTestResult;
-//import sfera.eduportal2.Repository.TestRepository;
-//import sfera.eduportal2.Repository.TestResultRepository;
-//import sfera.eduportal2.Repository.UserRepository;
-//import sfera.eduportal2.entity.Test;
-//import sfera.eduportal2.entity.TestResult;
-//import sfera.eduportal2.entity.Users;
-//
-//import java.util.ArrayList;
-//import java.util.List;
-//import java.util.Optional;
-//
-//@Service
-//@RequiredArgsConstructor
-//public class TestResultService {
-//
-//    private final TestResultRepository testResultRepository;
-//    private final UserRepository usersRepository;
-//    private final TestRepository testRepository;
-//
-//    public ApiResponse findAll() {
-//        List<TestResult> all = testResultRepository.findAll();
-//        List<ResTestResult> resTestResults = new ArrayList<>();
-//        for (TestResult result : all) {
-//            ResTestResult res = ResTestResult.builder()
-//                    .id(result.getId())
-//                    .userName(result.getUsers().getFullName())
-//                    .score(result.getScore())
-//                    .takenAt(result.getTakenAt())
-//                    .build();
-//            resTestResults.add(res);
-//        }
-//        return ApiResponse.builder()
-//                .message("Success")
-//                .success(true)
-//                .status(HttpStatus.OK)
-//                .body(resTestResults)
-//                .build();
-//    }
-//
-//    public ApiResponse findById(Long id) {
-//        Optional<TestResult> optional = testResultRepository.findById(id);
-//        if (optional.isEmpty()) {
-//            return ApiResponse.builder()
-//                    .message("TestResult not found")
-//                    .success(false)
-//                    .status(HttpStatus.NOT_FOUND)
-//                    .build();
-//        }
-//        TestResult result = optional.get();
-//        ResTestResult res = ResTestResult.builder()
-//                .id(result.getId())
-//                .userName(result.getUsers().getFullName())
-//                .score(result.getScore())
-//                .takenAt(result.getTakenAt())
-//                .build();
-//        return ApiResponse.builder()
-//                .message("Success")
-//                .success(true)
-//                .status(HttpStatus.OK)
-//                .body(res)
-//                .build();
-//    }
-//
-//    public ApiResponse save(ReqTestResult reqTestResult) {
-//        Optional<Users> userOptional = usersRepository.findById(reqTestResult.getUserId());
-//        if (userOptional.isEmpty()) {
-//            return ApiResponse.builder()
-//                    .message("User not found")
-//                    .success(false)
-//                    .status(HttpStatus.NOT_FOUND)
-//                    .build();
-//        }
-//
-//        Optional<Test> testOptional = testRepository.findById(reqTestResult.getTestId());
-//        if (testOptional.isEmpty()) {
-//            return ApiResponse.builder()
-//                    .message("Test not found")
-//                    .success(false)
-//                    .status(HttpStatus.NOT_FOUND)
-//                    .build();
-//        }
-//
-//        TestResult testResult = TestResult.builder()
-//                .users(userOptional.get())
-//                .test(testOptional.get())
-//                .score(reqTestResult.getScore())
-//                .takenAt(reqTestResult.getTakenAt())
-//                .build();
-//        testResultRepository.save(testResult);
-//
-//        return ApiResponse.builder()
-//                .message("TestResult successfully saved")
-//                .success(true)
-//                .status(HttpStatus.OK)
-//                .build();
-//    }
-//
-//    public ApiResponse update(Long id, ReqTestResult reqTestResult) {
-//        Optional<TestResult> optional = testResultRepository.findById(id);
-//        if (optional.isEmpty()) {
-//            return ApiResponse.builder()
-//                    .message("TestResult not found")
-//                    .success(false)
-//                    .status(HttpStatus.NOT_FOUND)
-//                    .build();
-//        }
-//
-//        Optional<Users> userOptional = usersRepository.findById(reqTestResult.getUserId());
-//        if (userOptional.isEmpty()) {
-//            return ApiResponse.builder()
-//                    .message("User not found")
-//                    .success(false)
-//                    .status(HttpStatus.NOT_FOUND)
-//                    .build();
-//        }
-//
-//        Optional<Test> testOptional = testRepository.findById(reqTestResult.getTestId());
-//        if (testOptional.isEmpty()) {
-//            return ApiResponse.builder()
-//                    .message("Test not found")
-//                    .success(false)
-//                    .status(HttpStatus.NOT_FOUND)
-//                    .build();
-//        }
-//
-//        TestResult toUpdate = optional.get();
-//        toUpdate.setUsers(userOptional.get());
-//        toUpdate.setTest(testOptional.get());
-//        toUpdate.setScore(reqTestResult.getScore());
-//        toUpdate.setTakenAt(reqTestResult.getTakenAt());
-//        testResultRepository.save(toUpdate);
-//
-//        return ApiResponse.builder()
-//                .message("TestResult successfully updated")
-//                .success(true)
-//                .status(HttpStatus.OK)
-//                .build();
-//    }
-//
-//    public ApiResponse delete(Long id) {
-//        Optional<TestResult> optional = testResultRepository.findById(id);
-//        if (optional.isEmpty()) {
-//            return ApiResponse.builder()
-//                    .message("TestResult not found")
-//                    .success(false)
-//                    .status(HttpStatus.NOT_FOUND)
-//                    .build();
-//        }
-//        testResultRepository.delete(optional.get());
-//        return ApiResponse.builder()
-//                .message("TestResult successfully deleted")
-//                .success(true)
-//                .status(HttpStatus.OK)
-//                .build();
-//    }
-//
-//
-//}
+package sfera.eduportal2.service;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import sfera.eduportal2.Payload.ApiResponse;
+import sfera.eduportal2.Payload.response.ResTestResult;
+import sfera.eduportal2.Repository.RecommendationRepository;
+import sfera.eduportal2.Repository.TestResultRepository;
+import sfera.eduportal2.Repository.UserRepository;
+import sfera.eduportal2.entity.Recommendation;
+import sfera.eduportal2.entity.TestResult;
+import sfera.eduportal2.entity.Users;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class TestResultService {
+
+    private final TestResultRepository testResultRepository;
+    private final UserRepository userRepository;
+    private final RecommendationRepository recommendationRepository;
+
+    // ====================================================================
+    // ADMIN UCHUN: Barcha natijalarni ko'rish
+    // ====================================================================
+    public ApiResponse getAllResults() {
+        List<TestResult> results = testResultRepository.findAll();
+        
+        List<ResTestResult> responseList = results.stream()
+                .map(this::toResponseDTO)
+                .collect(Collectors.toList());
+
+        return ApiResponse.builder()
+                .message("Barcha test natijalari olindi")
+                .success(true)
+                .status(HttpStatus.OK)
+                .body(responseList)
+                .build();
+    }
+
+    // ====================================================================
+    // O'QUVCHI UCHUN: Faqat o'zining natijalarini ko'rish
+    // ====================================================================
+    public ApiResponse getMyResults(Long userId) {
+        Optional<Users> userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty()) {
+            return ApiResponse.builder()
+                    .message("Foydalanuvchi topilmadi")
+                    .success(false)
+                    .status(HttpStatus.NOT_FOUND)
+                    .build();
+        }
+
+        // testResultRepository ichida findByUsers(Users user) metodi bo'lishi kerak
+        List<TestResult> userResults = testResultRepository.findByUsersOrderByTakenAtDesc(userOpt.get());
+
+        if (userResults.isEmpty()) {
+             return ApiResponse.builder()
+                    .message("Sizda hali test natijalari yo'q")
+                    .success(true)
+                    .status(HttpStatus.OK)
+                    .body(List.of()) // Bo'sh ro'yxat
+                    .build();
+        }
+
+        List<ResTestResult> responseList = userResults.stream()
+                .map(this::toResponseDTO)
+                .collect(Collectors.toList());
+
+        return ApiResponse.builder()
+                .message("Sizning test natijalaringiz")
+                .success(true)
+                .status(HttpStatus.OK)
+                .body(responseList)
+                .build();
+    }
+
+    // ====================================================================
+    // ID orqali bitta natijani to'liq ko'rish (Batafsil ma'lumot)
+    // ====================================================================
+    public ApiResponse getResultById(Long id) {
+        Optional<TestResult> resultOpt = testResultRepository.findById(id);
+        if (resultOpt.isEmpty()) {
+            return ApiResponse.builder()
+                    .message("Test natijasi topilmadi")
+                    .success(false)
+                    .status(HttpStatus.NOT_FOUND)
+                    .build();
+        }
+
+        return ApiResponse.builder()
+                .message("Test natijasi topildi")
+                .success(true)
+                .status(HttpStatus.OK)
+                .body(toResponseDTO(resultOpt.get()))
+                .build();
+    }
+
+
+    // ==================== HELPER METHOD ====================
+    // Entityni DTO ga o'girish
+    private ResTestResult toResponseDTO(TestResult result) {
+        
+        // O'sha natija foydalanuvchisiga AI qanday tavsiya berganini tortib olamiz
+        // recommendationRepository da findFirstByUsersOrderByCreatedAtDesc() degan metod 
+        // yozib qo'ygan bo'lishingiz tavsiya qilinadi (so'nggi tavsiyani olish uchun).
+        // Hozircha bo'sh string qaytaramiz yoki bitta mantiq yozamiz:
+        
+        String aiMessage = "Tavsiya topilmadi";
+        List<Recommendation> recommendations = recommendationRepository.findAllByUsers(result.getUsers());
+        if (!recommendations.isEmpty()) {
+            // Eng so'nggi tavsiyani olamiz (agar ro'yxat bo'lsa oxirgisi/birinchisi)
+            aiMessage = recommendations.get(recommendations.size() - 1).getReason();
+        }
+
+        return ResTestResult.builder()
+                .id(result.getId())
+                .userId(result.getUsers().getId())
+                .userName(result.getUsers().getFullName())
+                .moduleName(result.getTest().getModule().getModuleName())
+                .score(result.getScore())
+                .takenAt(result.getTakenAt())
+                .aiRecommendationMessage(aiMessage)
+                .build();
+    }
+}
