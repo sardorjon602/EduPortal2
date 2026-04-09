@@ -10,6 +10,7 @@ import sfera.eduportal2.Repository.OptionsRepository;
 import sfera.eduportal2.Repository.QuestionsRepository;
 import sfera.eduportal2.entity.Options;
 import sfera.eduportal2.entity.Questions;
+import sfera.eduportal2.entity.enums.Type;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -65,6 +66,15 @@ public class OptionsService {
                     .build();
         }
 
+        if (questionOpt.get().getType() != Type.OPTION) {
+            return ApiResponse.builder()
+                    .message("Options can only be added to OPTION type questions!")
+                    .success(false)
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(null)
+                    .build();
+        }
+
         long trueCount = reqOptionsList.stream()
                 .filter(ReqOptions::isCorrect)
                 .count();
@@ -74,7 +84,6 @@ public class OptionsService {
                     .message("Exactly one option must be correct!")
                     .success(false)
                     .status(HttpStatus.BAD_REQUEST)
-                    .body(null)
                     .build();
         }
 
