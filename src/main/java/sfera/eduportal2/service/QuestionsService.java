@@ -3,13 +3,13 @@ package sfera.eduportal2.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import sfera.eduportal2.Exception.NotFoundException;
 import sfera.eduportal2.Payload.ApiResponse;
 import sfera.eduportal2.Payload.request.ReqQuestions;
 import sfera.eduportal2.Payload.response.ResQuestions;
 import sfera.eduportal2.Repository.ModuleRepository;
 import sfera.eduportal2.Repository.QuestionsRepository;
 import sfera.eduportal2.entity.Module;
+import sfera.eduportal2.entity.enums.Type;
 import sfera.eduportal2.entity.Questions;
 
 import java.util.ArrayList;
@@ -30,16 +30,25 @@ public class QuestionsService {
                     .message("Module not found!")
                     .success(false)
                     .status(HttpStatus.NOT_FOUND)
-                    .body(null)
+                    .build();
+        }
+
+        Type type;
+        try {
+            type = Type.valueOf(reqQuestions.getType().toString().toUpperCase());
+        } catch (IllegalArgumentException | NullPointerException e) {
+            return ApiResponse.builder()
+                    .message("Invalid type! Allowed values: OPTION, TEXT")
+                    .success(false)
+                    .status(HttpStatus.BAD_REQUEST)
                     .build();
         }
 
         Questions question = Questions.builder()
                 .text(reqQuestions.getText())
+                .type(type)
                 .module(module.get())
-                .type(reqQuestions.getType())
                 .build();
-
 
         questionsRepository.save(question);
 
@@ -71,11 +80,22 @@ public class QuestionsService {
                     .body(null)
                     .build();
         }
+
+        Type type;
+        try {
+            type = Type.valueOf(reqQuestions.getType().toString().toUpperCase());
+        } catch (IllegalArgumentException | NullPointerException e) {
+            return ApiResponse.builder()
+                    .message("Invalid type! Allowed values: OPTION, TEXT")
+                    .success(false)
+                    .status(HttpStatus.BAD_REQUEST)
+                    .build();
+        }
+
         Questions questions = byId.get();
         questions.setText(reqQuestions.getText());
-        questions.setType(reqQuestions.getType());
+        questions.setType(type);
         questions.setModule(module.get());
-
         questionsRepository.save(questions);
 
         return ApiResponse.builder()
@@ -121,10 +141,6 @@ public class QuestionsService {
 
     public ApiResponse deleteQuestion(Long id) {
         Optional<Questions> questions = questionsRepository.findById(id);
-
-//        Optional<Questions> questions = questionsRepository.findById(id).orElseThrow(
-//                () -> new NotFoundException("Savol topilmadi")
-//        );
 
         if (questions.isPresent()) {
             questionsRepository.delete(questions.get());
