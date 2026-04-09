@@ -55,7 +55,7 @@ public class TestResultService {
                     .build();
         }
 
-        // testResultRepository ichida findByUsers(Users user) metodi bo'lishi kerak
+        // testResultRepository ichida findByUsersOrderByTakenAtDesc(Users user) metodi bo'lishi kerak
         List<TestResult> userResults = testResultRepository.findByUsersOrderByTakenAtDesc(userOpt.get());
 
         if (userResults.isEmpty()) {
@@ -106,14 +106,10 @@ public class TestResultService {
     private ResTestResult toResponseDTO(TestResult result) {
         
         // O'sha natija foydalanuvchisiga AI qanday tavsiya berganini tortib olamiz
-        // recommendationRepository da findFirstByUsersOrderByCreatedAtDesc() degan metod 
-        // yozib qo'ygan bo'lishingiz tavsiya qilinadi (so'nggi tavsiyani olish uchun).
-        // Hozircha bo'sh string qaytaramiz yoki bitta mantiq yozamiz:
-        
         String aiMessage = "Tavsiya topilmadi";
         List<Recommendation> recommendations = recommendationRepository.findAllByUsers(result.getUsers());
         if (!recommendations.isEmpty()) {
-            // Eng so'nggi tavsiyani olamiz (agar ro'yxat bo'lsa oxirgisi/birinchisi)
+            // Eng so'nggi tavsiyani olamiz (agar ro'yxat bo'lsa oxirgisi)
             aiMessage = recommendations.get(recommendations.size() - 1).getReason();
         }
 
@@ -121,7 +117,11 @@ public class TestResultService {
                 .id(result.getId())
                 .userId(result.getUsers().getId())
                 .userName(result.getUsers().getFullName())
-                .moduleName(result.getTest().getModule().getModuleName())
+                
+                // O'ZGARISH: .moduleName() emas, balki .categoryName() bo'ldi
+                // Chunki endi Test Entity Module ga emas, Category ga bog'langan
+                .categoryName(result.getTest().getCategory().getName()) 
+                
                 .score(result.getScore())
                 .takenAt(result.getTakenAt())
                 .aiRecommendationMessage(aiMessage)

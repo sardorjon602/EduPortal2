@@ -10,7 +10,7 @@ public class ResTestResult {
     private Long id;
     private Long userId;
     private String userName;
-    private String moduleName;
+    private String categoryName;
     private Double score;
     private LocalDateTime takenAt;
     // O'sha natijaga biriktirilgan AI tavsiyasini (agar bo'lsa) saqlaymiz

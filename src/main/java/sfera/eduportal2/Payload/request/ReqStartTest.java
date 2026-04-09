@@ -3,6 +3,6 @@ import lombok.Data;
 
 @Data
 public class ReqStartTest {
-    private Long moduleId; 
+    private Long categoryId;
     private Long userId; // Agar @CurrentUser ishlatsangiz, buni olib tashlashingiz ham mumkin
 }

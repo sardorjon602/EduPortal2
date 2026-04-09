@@ -10,7 +10,7 @@ import sfera.eduportal2.Payload.response.ResQuestions;
 import sfera.eduportal2.Payload.response.ResStartTest;
 import sfera.eduportal2.Repository.*;
 import sfera.eduportal2.entity.*;
-import sfera.eduportal2.entity.Module;
+// import sfera.eduportal2.entity.Module; // Bunga endi ehtiyoj yo'q, o'rniga Category ishlatamiz
 
 import java.sql.Time;
 import java.time.LocalDateTime;
@@ -25,44 +25,44 @@ import java.util.stream.Collectors;
 public class TestService {
 
     private final TestRepository testRepository;
-    private final ModuleRepository moduleRepository;
+    private final CategoryRepository categoryRepository; // Modul o'rniga Kategoriya repozitoriysi
     private final UserRepository usersRepository;
     private final QuestionsRepository questionsRepository;
     private final TestResultRepository testResultRepository;
     private final RecommendationService recommendationService;
 
     // ====================================================================
-    // TESTNI BOSHLASH
+    // TESTNI BOSHLASH (KATEGORIYA BO'YICHA)
     // ====================================================================
     public ApiResponse startTest(ReqStartTest req) {
-        // 6-band: userId xatosini to'liq nazorat qilish
-        if (req.getUserId() == null || req.getModuleId() == null) {
+        // 6-band: userId va categoryId xatosini to'liq nazorat qilish
+        if (req.getUserId() == null || req.getCategoryId() == null) {
             return ApiResponse.builder()
-                    .message("UserId yoki ModuleId bo'sh bo'lishi mumkin emas!")
+                    .message("UserId yoki CategoryId bo'sh bo'lishi mumkin emas!")
                     .success(false)
                     .status(HttpStatus.BAD_REQUEST)
                     .build();
         }
 
         Optional<Users> userOpt = usersRepository.findById(req.getUserId());
-        Optional<Module> moduleOpt = moduleRepository.findById(req.getModuleId());
+        Optional<Category> categoryOpt = categoryRepository.findById(req.getCategoryId());
 
-        if (userOpt.isEmpty() || moduleOpt.isEmpty()) {
+        if (userOpt.isEmpty() || categoryOpt.isEmpty()) {
             return ApiResponse.builder()
-                    .message("Foydalanuvchi yoki Modul tizimda topilmadi")
+                    .message("Foydalanuvchi yoki Kategoriya tizimda topilmadi")
                     .success(false)
                     .status(HttpStatus.NOT_FOUND)
                     .build();
         }
 
         Users user = userOpt.get();
-        Module module = moduleOpt.get();
+        Category category = categoryOpt.get();
 
-        // Modulga tegishli savollarni olish
-        List<Questions> questions = questionsRepository.findAllByModuleId(module.getId());
+        // Kategoriya ichidagi BARCHA modullarning savollarini olish
+        List<Questions> questions = questionsRepository.findAllByModule_CategoryId(category.getId());
         if (questions.isEmpty()) {
             return ApiResponse.builder()
-                    .message(module.getModuleName() + " moduli uchun hali savollar kiritilmagan")
+                    .message(category.getName() + " kategoriyasi uchun hali savollar kiritilmagan")
                     .success(false)
                     .status(HttpStatus.BAD_REQUEST)
                     .build();
@@ -73,10 +73,10 @@ public class TestService {
         long durationMillis = questionCount * 60 * 1000L;
         Time timeLimit = new Time(System.currentTimeMillis() + durationMillis);
 
-        // 8-band: TestCreate kerak emas. Shu sababli test sessiyasini avtomatik orqa fonda yaratamiz
+        // 8-band: Test sessiyasini avtomatik orqa fonda yaratamiz (Endi Kategoriyaga ulanadi)
         Test testSession = Test.builder()
                 .user(user)
-                .module(module)
+                .category(category) 
                 .timeLimit(timeLimit)
                 .build();
         testRepository.save(testSession);
@@ -101,14 +101,14 @@ public class TestService {
 
         ResStartTest responseDto = ResStartTest.builder()
                 .sessionId(activeSession.getId())
-                .moduleName(module.getModuleName())
+                .categoryName(category.getName()) // moduleName emas, categoryName
                 .timeLimit(timeLimit)
                 .questions(questionDtos)
                 .build();
 
         // 7-band: Aniq va tushunarli ma'lumot (xabar) qaytarish
-        String exactMessage = String.format("'%s' moduli bo'yicha test muvaffaqiyatli boshlandi. Sizda %d ta savol va %d daqiqa vaqt bor.", 
-                module.getModuleName(), questionCount, questionCount);
+        String exactMessage = String.format("'%s' kategoriyasi bo'yicha test muvaffaqiyatli boshlandi. Sizda %d ta savol va %d daqiqa vaqt bor.", 
+                category.getName(), questionCount, questionCount);
 
         return ApiResponse.builder()
                 .message(exactMessage)
