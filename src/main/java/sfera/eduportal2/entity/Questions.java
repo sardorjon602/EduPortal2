@@ -1,8 +1,6 @@
 package sfera.eduportal2.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
+import jakarta.persistence.*;
 import lombok.*;
 import sfera.eduportal2.entity.Template.AbsEntity;
 import sfera.eduportal2.entity.enums.Type;
@@ -17,7 +15,8 @@ public class Questions extends AbsEntity {
 
     private String text;
 
-    private String type;
+    @Enumerated(EnumType.STRING)
+    private Type type;
 
     @ManyToOne
     private Module module;
