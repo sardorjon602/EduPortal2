@@ -1,5 +1,4 @@
 package sfera.eduportal2.service;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -13,13 +12,13 @@ import sfera.eduportal2.entity.Module;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
 @Service
 @RequiredArgsConstructor
 public class ModuleService {
 
     private final ModuleRepository moduleRepository;
     private final CategoryRepository categoryRepository;
+
 
     public ApiResponse findAll() {
 
@@ -44,6 +43,8 @@ public class ModuleService {
                 .body(result)
                 .build();
     }
+
+
     public ApiResponse findById(Long id) {
 
         Optional<Module> optionalModule = moduleRepository.findById(id);
@@ -76,6 +77,7 @@ public class ModuleService {
 
     public ApiResponse save(ReqModule reqModule) {
 
+
         boolean exists =
                 moduleRepository.existsByModuleNameIgnoreCase(
                         reqModule.getTitle()
@@ -84,7 +86,7 @@ public class ModuleService {
         if (exists) {
 
             return ApiResponse.builder()
-                    .message("Module already exists")
+                    .message("Bunday module mavjud")
                     .success(false)
                     .status(HttpStatus.CONFLICT)
                     .build();
@@ -122,7 +124,7 @@ public class ModuleService {
     public ApiResponse update(Long id, ReqModule reqModule) {
 
         Optional<Module> optionalModule =
-                moduleRepository.findById(Long.valueOf(id));
+                moduleRepository.findById(id);
 
         if (optionalModule.isEmpty()) {
 
@@ -132,9 +134,11 @@ public class ModuleService {
                     .status(HttpStatus.NOT_FOUND)
                     .build();
         }
+
         boolean exists =
-                moduleRepository.existsByModuleNameIgnoreCase(
-                        reqModule.getTitle()
+                moduleRepository.existsByModuleNameIgnoreCaseAndIdNot(
+                        reqModule.getTitle(),
+                        id
                 );
 
         if (exists) {
@@ -162,8 +166,10 @@ public class ModuleService {
 
         Module module = optionalModule.get();
 
-        module.setModuleName(reqModule.getContent());
+        module.setModuleName(reqModule.getTitle());
         module.setCategory(optionalCategory.get());
+
+        moduleRepository.save(module);
 
         return ApiResponse.builder()
                 .message("Module yangilandi")

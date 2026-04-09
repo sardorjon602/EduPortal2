@@ -1,5 +1,4 @@
 package sfera.eduportal2.service;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -8,27 +7,28 @@ import sfera.eduportal2.Payload.request.ReqCategory;
 import sfera.eduportal2.Payload.response.ResCategory;
 import sfera.eduportal2.Repository.CategoryRepository;
 import sfera.eduportal2.entity.Category;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
-
 @Service
 @RequiredArgsConstructor
 public class CategoryService {
     private final CategoryRepository categoryRepository;
-
-
     public ApiResponse findAll() {
         List<Category> all = categoryRepository.findAll();
         List<ResCategory> resList = new ArrayList<>();
 
         for (Category category : all) {
+
+            int questionCount = 0;
+            if (category.getQuestionCount() != 0) {
+                questionCount = category.getQuestionCount();
+            }
+
             ResCategory res = ResCategory.builder()
                     .id(category.getId())
                     .name(category.getName())
-                    .questionCount(category.getQuestionCount())
+                    .questionCount(questionCount)
                     .build();
             resList.add(res);
         }
@@ -40,8 +40,6 @@ public class CategoryService {
                 .body(resList)
                 .build();
     }
-
-
     public ApiResponse findById(Long id) {
         Optional<Category> optional = categoryRepository.findById(id);
         if (optional.isEmpty()) {
@@ -51,12 +49,16 @@ public class CategoryService {
                     .status(HttpStatus.NOT_FOUND)
                     .build();
         }
-
         Category category = optional.get();
+
+        int questionCount = 0;
+        if (category.getQuestionCount() != 0) {
+            questionCount = category.getQuestionCount();
+        }
         ResCategory res = ResCategory.builder()
                 .id(category.getId())
                 .name(category.getName())
-                .questionCount(category.getQuestionCount())
+                .questionCount(questionCount)
                 .build();
 
         return ApiResponse.builder()
@@ -79,7 +81,6 @@ public class CategoryService {
 
         Category category = Category.builder()
                 .name(requestCategory.getName())
-                .questionCount(requestCategory.getQuestionCount())
                 .build();
 
         categoryRepository.save(category);
@@ -90,7 +91,6 @@ public class CategoryService {
                 .status(HttpStatus.CREATED)
                 .build();
     }
-
 
     public ApiResponse update(Long id, ReqCategory requestCategory) {
         Optional<Category> optional = categoryRepository.findById(id);
@@ -109,23 +109,11 @@ public class CategoryService {
                     .success(false)
                     .status(HttpStatus.CONFLICT)
                     .build();
-
-
-
-
-
-
-
-
-
-
-
-
         }
 
         Category category = optional.get();
         category.setName(requestCategory.getName());
-        category.setQuestionCount(requestCategory.getQuestionCount());
+
         categoryRepository.save(category);
 
         return ApiResponse.builder()
