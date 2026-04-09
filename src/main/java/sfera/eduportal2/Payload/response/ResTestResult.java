@@ -1,25 +1,18 @@
 package sfera.eduportal2.Payload.response;
 
-import lombok.*;
+import lombok.Builder;
+import lombok.Data;
+import java.time.LocalDateTime;
 
-import java.util.Date;
-
-@Getter
-@Setter
-@AllArgsConstructor
-@NoArgsConstructor
+@Data
 @Builder
 public class ResTestResult {
-
     private Long id;
-
+    private Long userId;
     private String userName;
-
-    private String testName;
-
+    private String moduleName;
     private Double score;
-
-    private Date takenAt;
-
-
+    private LocalDateTime takenAt;
+    // O'sha natijaga biriktirilgan AI tavsiyasini (agar bo'lsa) saqlaymiz
+    private String aiRecommendationMessage; 
 }

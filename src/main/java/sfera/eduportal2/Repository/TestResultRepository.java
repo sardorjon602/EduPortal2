@@ -13,6 +13,7 @@ public interface TestResultRepository extends JpaRepository<TestResult, Long> {
 
 
     List<TestResult> findTop5ByUsersOrderByCreatedAtDesc(Users users);
+    List<TestResult> findByUsersOrderByTakenAtDesc(Users users);
 
 
 }
