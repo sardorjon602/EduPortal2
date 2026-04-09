@@ -96,7 +96,6 @@ public class QuestionsService {
         questions.setText(reqQuestions.getText());
         questions.setType(type);
         questions.setModule(module.get());
-
         questionsRepository.save(questions);
 
         return ApiResponse.builder()
