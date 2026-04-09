@@ -23,7 +23,7 @@ public class Test extends AbsEntity {
     private Users user;
 
     @ManyToOne
-    private Module module;
+    private Category category;
 
     private Time timeLimit;
 

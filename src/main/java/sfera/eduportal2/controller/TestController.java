@@ -17,7 +17,8 @@ public class TestController {
     private final TestService testService;
 
     @PostMapping("/start")
-    @Operation(summary = "Modul bo'yicha testni boshlash")
+    // O'ZGARISH: Swagger izohi Kategoriya bo'yicha deb to'g'rilandi
+    @Operation(summary = "Kategoriya bo'yicha testni boshlash (Barcha modullar savollari jamlanadi)")
     // @PreAuthorize("hasAnyRole('ROLE_STUDENT', 'ROLE_USER')")
     public ResponseEntity<ApiResponse> startTest(@RequestBody ReqStartTest request) {
         ApiResponse response = testService.startTest(request);

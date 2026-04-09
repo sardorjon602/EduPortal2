@@ -8,7 +8,7 @@ import java.util.List;
 @Builder
 public class ResStartTest {
     private Long sessionId; // Testni yakunlash (stop) uchun kerak
-    private String moduleName;
+    private String categoryName;
     private Time timeLimit;
     private List<ResQuestions> questions;
 }
