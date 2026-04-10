@@ -1,44 +1,48 @@
 package sfera.eduportal2.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 import sfera.eduportal2.Payload.ApiResponse;
 import sfera.eduportal2.Payload.request.ReqStartTest;
 import sfera.eduportal2.Payload.request.ReqStopTest;
-import sfera.eduportal2.Payload.response.ResQuestions;
-import sfera.eduportal2.Payload.response.ResStartTest;
+import sfera.eduportal2.Payload.response.*;
 import sfera.eduportal2.Repository.*;
 import sfera.eduportal2.entity.*;
-// import sfera.eduportal2.entity.Module; // Bunga endi ehtiyoj yo'q, o'rniga Category ishlatamiz
+import sfera.eduportal2.entity.Module;
 
-import java.sql.Time;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class TestService {
 
-    private final TestRepository testRepository;
-    private final CategoryRepository categoryRepository; // Modul o'rniga Kategoriya repozitoriysi
+    private final TestSessionRepository testSessionRepository;
+    private final TestResultRepository testResultRepository;
+    private final CategoryRepository categoryRepository;
     private final UserRepository usersRepository;
     private final QuestionsRepository questionsRepository;
-    private final TestResultRepository testResultRepository;
-    private final RecommendationService recommendationService;
+    private final OptionsRepository optionsRepository;
+    private final UserAnswerRepository userAnswerRepository;
+    private final RestTemplate restTemplate;
 
-    // ====================================================================
-    // TESTNI BOSHLASH (KATEGORIYA BO'YICHA)
-    // ====================================================================
+    @Value("${gemini.api.key}")
+    private String apiKey;
+
+    private static final String GEMINI_URL =
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+
+    // ================================================================
+    // TESTNI BOSHLASH
+    // ================================================================
     public ApiResponse startTest(ReqStartTest req) {
-        // 6-band: userId va categoryId xatosini to'liq nazorat qilish
         if (req.getUserId() == null || req.getCategoryId() == null) {
             return ApiResponse.builder()
-                    .message("UserId yoki CategoryId bo'sh bo'lishi mumkin emas!")
+                    .message("UserId yoki CategoryId bo'sh bo'lmasligi kerak!")
                     .success(false)
                     .status(HttpStatus.BAD_REQUEST)
                     .build();
@@ -49,7 +53,7 @@ public class TestService {
 
         if (userOpt.isEmpty() || categoryOpt.isEmpty()) {
             return ApiResponse.builder()
-                    .message("Foydalanuvchi yoki Kategoriya tizimda topilmadi")
+                    .message("Foydalanuvchi yoki Kategoriya topilmadi")
                     .success(false)
                     .status(HttpStatus.NOT_FOUND)
                     .build();
@@ -58,106 +62,298 @@ public class TestService {
         Users user = userOpt.get();
         Category category = categoryOpt.get();
 
-        // Kategoriya ichidagi BARCHA modullarning savollarini olish
-        List<Questions> questions = questionsRepository.findAllByModule_CategoryId(category.getId());
+        List<Questions> questions = questionsRepository
+                .findByModuleCategoryId(category.getId());
+
         if (questions.isEmpty()) {
             return ApiResponse.builder()
-                    .message(category.getName() + " kategoriyasi uchun hali savollar kiritilmagan")
+                    .message(category.getName() + " kategoriyasi uchun savollar topilmadi")
                     .success(false)
                     .status(HttpStatus.BAD_REQUEST)
                     .build();
         }
 
-        // Vaqtni hisoblash (har bir savolga 1 daqiqadan beramiz)
         int questionCount = questions.size();
-        long durationMillis = questionCount * 60 * 1000L;
-        Time timeLimit = new Time(System.currentTimeMillis() + durationMillis);
+        long timeLimitSeconds = (long) questionCount * 60;
 
-        // 8-band: Test sessiyasini avtomatik orqa fonda yaratamiz (Endi Kategoriyaga ulanadi)
-        Test testSession = Test.builder()
-                .user(user)
-                .category(category) 
-                .timeLimit(timeLimit)
-                .build();
-        testRepository.save(testSession);
-
-        // Natija (score) ni saqlash uchun qolip ochamiz
-        TestResult activeSession = TestResult.builder()
-                .users(user)
-                .test(testSession)
-                .score(0.0)
-                .takenAt(LocalDateTime.now())
-                .build();
-        testResultRepository.save(activeSession);
-
-        // 10-band: Entity o'rniga DTO (ResQuestions) yasaymiz
-        List<ResQuestions> questionDtos = questions.stream().map(q -> 
-                ResQuestions.builder()
-                        .id(q.getId())
-                        .text(q.getText())
-                        .type(q.getType())
+        // TestSession saqlaymiz
+        TestSession testSession = testSessionRepository.save(
+                TestSession.builder()
+                        .users(user)
+                        .category(category)
+                        .startTime(LocalDateTime.now())
+                        .isFinished(false)
                         .build()
-        ).collect(Collectors.toList());
+        );
+
+        // Optionlarni BATCH da olamiz
+        List<Long> questionIds = questions.stream()
+                .map(Questions::getId)
+                .collect(Collectors.toList());
+
+        List<Options> allOptions = optionsRepository
+                .findAllByQuestionsIdIn(questionIds);
+
+        Map<Long, List<Options>> optionsByQuestionId = allOptions.stream()
+                .collect(Collectors.groupingBy(opt -> opt.getQuestions().getId()));
+
+        // DTO — isCorrect false qilib yuboramiz
+        List<ResQuestions> questionDtos = questions.stream().map(q -> {
+            List<ResOptions> optionDtos = optionsByQuestionId
+                    .getOrDefault(q.getId(), List.of())
+                    .stream()
+                    .map(opt -> ResOptions.builder()
+                            .id(opt.getId())
+                            .text(opt.getText())
+                            .isCorrect(false) // YASHIRILDI
+                            .questionId(q.getId())
+                            .questionText(q.getText())
+                            .build())
+                    .collect(Collectors.toList());
+
+            return ResQuestions.builder()
+                    .id(q.getId())
+                    .text(q.getText())
+                    .type(q.getType())
+                    .moduleId(q.getModule().getId())
+                    .moduleName(q.getModule().getModuleName())
+                    .options(optionDtos)
+                    .build();
+        }).collect(Collectors.toList());
 
         ResStartTest responseDto = ResStartTest.builder()
-                .sessionId(activeSession.getId())
-                .categoryName(category.getName()) // moduleName emas, categoryName
-                .timeLimit(timeLimit)
+                .sessionId(testSession.getId())
+                .categoryName(category.getName())
+                .timeLimitSeconds(timeLimitSeconds)
                 .questions(questionDtos)
                 .build();
 
-        // 7-band: Aniq va tushunarli ma'lumot (xabar) qaytarish
-        String exactMessage = String.format("'%s' kategoriyasi bo'yicha test muvaffaqiyatli boshlandi. Sizda %d ta savol va %d daqiqa vaqt bor.", 
-                category.getName(), questionCount, questionCount);
-
         return ApiResponse.builder()
-                .message(exactMessage)
+                .message(String.format(
+                        "'%s' kategoriyasi bo'yicha test boshlandi. %d ta savol, %d daqiqa.",
+                        category.getName(), questionCount, questionCount))
                 .success(true)
                 .status(HttpStatus.OK)
                 .body(responseDto)
                 .build();
     }
 
-    // ====================================================================
-    // TESTNI YAKUNLASH VA AI TAVSIYASI
-    // ====================================================================
+    // ================================================================
+    // TESTNI YAKUNLASH + AI TAVSIYA
+    // ================================================================
     public ApiResponse stopTest(ReqStopTest req) {
-        if (req.getSessionId() == null || req.getScore() == null) {
+        if (req.getSessionId() == null || req.getUserId() == null
+                || req.getAnswers() == null || req.getAnswers().isEmpty()) {
             return ApiResponse.builder()
-                    .message("SessionId va Score kiritilishi shart!")
+                    .message("SessionId, UserId va Answers bo'sh bo'lmasligi kerak!")
                     .success(false)
                     .status(HttpStatus.BAD_REQUEST)
                     .build();
         }
 
-        Optional<TestResult> sessionOpt = testResultRepository.findById(req.getSessionId());
+        Optional<TestSession> sessionOpt = testSessionRepository
+                .findById(req.getSessionId());
         if (sessionOpt.isEmpty()) {
             return ApiResponse.builder()
-                    .message("Faol test sessiyasi topilmadi")
+                    .message("Test sessiyasi topilmadi")
                     .success(false)
                     .status(HttpStatus.NOT_FOUND)
                     .build();
         }
 
-        TestResult session = sessionOpt.get();
+        TestSession testSession = sessionOpt.get();
+        Map<Long, Long> answers = req.getAnswers();
 
-        // Natijani saqlaymiz
-        session.setScore(req.getScore());
-        session.setTakenAt(LocalDateTime.now());
-        testResultRepository.save(session);
+        // Savollar va optionlarni BATCH da olamiz
+        List<Long> questionIds = new ArrayList<>(answers.keySet());
+        List<Questions> questionsList = questionsRepository.findAllById(questionIds);
+        List<Options> allOptions = optionsRepository.findAllByQuestionsIdIn(questionIds);
 
-        // AI Recommendation xizmatini chaqirib tavsiya olamiz
-        var aiRecommendation = recommendationService.generateAndSave(session.getUsers().getId());
+        Map<Long, List<Options>> optionsByQuestionId = allOptions.stream()
+                .collect(Collectors.groupingBy(opt -> opt.getQuestions().getId()));
 
-        Map<String, Object> responseData = new HashMap<>();
-        responseData.put("finalScore", session.getScore());
-        responseData.put("aiRecommendation", aiRecommendation);
+        // ---- SCORE HISOBLASH ----
+        int correct = 0;
+        int total = questionsList.size();
+        Map<Long, ModuleStats> moduleStatsMap = new LinkedHashMap<>();
+        StringBuilder promptBody = new StringBuilder();
+        List<UserAnswer> userAnswers = new ArrayList<>();
+
+        for (Questions q : questionsList) {
+            Long selectedOptId = answers.get(q.getId());
+            List<Options> opts = optionsByQuestionId
+                    .getOrDefault(q.getId(), List.of());
+
+            // Tanlangan option
+            Options selectedOption = opts.stream()
+                    .filter(opt -> opt.getId().equals(selectedOptId))
+                    .findFirst()
+                    .orElse(null);
+
+            String selectedText = selectedOption != null
+                    ? selectedOption.getText() : "Javob berilmagan";
+
+            String correctText = opts.stream()
+                    .filter(Options::isCorrect)
+                    .map(Options::getText)
+                    .findFirst()
+                    .orElse("Noma'lum");
+
+            boolean isCorrect = selectedOption != null && selectedOption.isCorrect();
+            if (isCorrect) correct++;
+
+            // UserAnswer saqlaymiz
+            userAnswers.add(UserAnswer.builder()
+                    .testSession(testSession)
+                    .questions(q)
+                    .selectedOption(selectedOption)
+                    .isCorrect(isCorrect)
+                    .build());
+
+            // Modul statistikasi
+            if (q.getModule() != null) {
+                moduleStatsMap.computeIfAbsent(
+                        q.getModule().getId(),
+                        id -> new ModuleStats(q.getModule()));
+                moduleStatsMap.get(q.getModule().getId()).addResult(isCorrect);
+            }
+
+            String moduleName = q.getModule() != null
+                    ? q.getModule().getModuleName() : "Noma'lum";
+
+            promptBody.append("Modul: ").append(moduleName).append("\n");
+            promptBody.append("Savol: ").append(q.getText()).append("\n");
+            promptBody.append("Berilgan javob: ").append(selectedText).append("\n");
+            promptBody.append("To'g'ri javob: ").append(correctText).append("\n");
+            promptBody.append("Natija: ")
+                    .append(isCorrect ? "TO'G'RI" : "NOTO'G'RI").append("\n\n");
+        }
+
+        // UserAnswer larni saqlaymiz
+        userAnswerRepository.saveAll(userAnswers);
+
+        // TestSession ni yakunlaymiz
+        testSession.setFinished(true);
+        testSession.setEndTime(LocalDateTime.now());
+        testSession.setUserAnswers(userAnswers);
+        testSessionRepository.save(testSession);
+
+        double scorePercent = total > 0 ? (correct * 100.0 / total) : 0.0;
+
+        String fullPrompt = String.format(
+                "Umumiy natija: %d/%d (%.1f%%)\n\n", correct, total, scorePercent)
+                + promptBody;
+
+        // Eng zaif modul
+        Module weakestModule = moduleStatsMap.values().stream()
+                .max(Comparator.comparingDouble(ModuleStats::errorRate))
+                .map(ModuleStats::getModule)
+                .orElse(null);
+
+        // Gemini ga yuboramiz
+        String aiRecommendation = callGeminiApi(fullPrompt);
+
+        // TestResult saqlaymiz
+        testResultRepository.save(
+                TestResult.builder()
+                        .users(testSession.getUsers())
+                        .testSession(testSession)
+                        .correctCount(correct)
+                        .totalCount(total)
+                        .scorePercent(scorePercent)
+                        .aiRecommendation(aiRecommendation)
+                        .recommendedModule(weakestModule != null
+                                ? weakestModule.getModuleName() : "Aniqlanmadi")
+                        .build()
+        );
+
+        ResStopTest responseDto = ResStopTest.builder()
+                .correctCount(correct)
+                .totalCount(total)
+                .scorePercent(scorePercent)
+                .recommendedModule(weakestModule != null
+                        ? weakestModule.getModuleName() : "Aniqlanmadi")
+                .aiRecommendation(aiRecommendation)
+                .build();
 
         return ApiResponse.builder()
-                .message("Test yakunlandi. AI natijangizni tahlil qildi.")
+                .message("Test yakunlandi! AI natijangizni tahlil qildi.")
                 .success(true)
                 .status(HttpStatus.OK)
-                .body(responseData)
+                .body(responseDto)
                 .build();
+    }
+
+    // ================================================================
+    // GEMINI API
+    // ================================================================
+    private String callGeminiApi(String testSummary) {
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            String systemPrompt = """
+                    O'quvchining test natijalarini tahlil qilib, \
+                    quyidagi formatda javob ber:
+                    
+                    1. UMUMIY BAHO: (2-3 jumlada umumiy natijani baholash)
+                    2. ZAIF TOMONLAR: (qaysi modullarda ko'proq xato ketgan)
+                    3. TAVSIYA ETILGAN MODUL: (o'qishi kerak bo'lgan modul nomi)
+                    4. SABAB: (nima uchun aynan shu modul)
+                    5. KEYINGI QADAM: (qanday o'qish kerak, maslahat)
+                    
+                    Javob o'zbek tilida, rag'batlantiruvchi va aniq bo'lsin.
+                    """;
+
+            Map<String, Object> body = Map.of(
+                    "contents", List.of(
+                            Map.of("parts", List.of(
+                                    Map.of("text", systemPrompt + "\n\n" + testSummary)
+                            ))
+                    )
+            );
+
+            String urlWithKey = GEMINI_URL + "?key=" + apiKey;
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+            ResponseEntity<Map> response = restTemplate.postForEntity(
+                    urlWithKey, request, Map.class);
+
+            if (response.getStatusCode() == HttpStatus.OK
+                    && response.getBody() != null) {
+                List<Map<String, Object>> candidates =
+                        (List<Map<String, Object>>) response.getBody().get("candidates");
+                if (candidates != null && !candidates.isEmpty()) {
+                    Map<String, Object> content =
+                            (Map<String, Object>) candidates.get(0).get("content");
+                    List<Map<String, Object>> parts =
+                            (List<Map<String, Object>>) content.get("parts");
+                    if (parts != null && !parts.isEmpty()) {
+                        return (String) parts.get(0).get("text");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            return "AI tavsiyasini olishda xatolik: " + e.getMessage();
+        }
+        return "AI tavsiyasi mavjud emas";
+    }
+
+    // ================================================================
+    // HELPER
+    // ================================================================
+    private static class ModuleStats {
+        private final Module module;
+        private int total = 0;
+        private int errors = 0;
+
+        ModuleStats(Module module) { this.module = module; }
+
+        void addResult(boolean isCorrect) {
+            total++;
+            if (!isCorrect) errors++;
+        }
+
+        double errorRate() { return total > 0 ? (double) errors / total : 0; }
+        Module getModule() { return module; }
     }
 }

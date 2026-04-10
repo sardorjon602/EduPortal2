@@ -1,14 +1,15 @@
 package sfera.eduportal2.Payload.response;
-import lombok.Builder;
-import lombok.Data;
-import java.sql.Time;
+
+import lombok.*;
 import java.util.List;
 
 @Data
 @Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class ResStartTest {
-    private Long sessionId; // Testni yakunlash (stop) uchun kerak
+    private Long sessionId;
     private String categoryName;
-    private Time timeLimit;
+    private Long timeLimitSeconds;
     private List<ResQuestions> questions;
 }
