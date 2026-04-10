@@ -5,6 +5,9 @@ import lombok.*;
 import sfera.eduportal2.entity.Template.AbsEntity;
 import sfera.eduportal2.entity.enums.Type;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Getter
 @Setter
 @AllArgsConstructor
@@ -21,6 +24,7 @@ public class Questions extends AbsEntity {
     @ManyToOne
     private Module module;
 
-
+    @OneToMany
+    private List<Options> options = new ArrayList<>();
 
 }

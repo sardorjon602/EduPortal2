@@ -1,9 +1,6 @@
 package sfera.eduportal2.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
+import jakarta.persistence.*;
 import lombok.*;
 import sfera.eduportal2.entity.Template.AbsEntity;
 
@@ -21,10 +18,19 @@ public class TestResult extends AbsEntity {
     @ManyToOne
     private Users users;
 
-    @OneToOne
-    private Test test;
+    @ManyToOne
+    private TestSession testSession;
 
-    private Double score;
+    private Date taskData;
 
     private LocalDateTime takenAt;
+
+    private int correctCount;
+    private int totalCount;
+    private double scorePercent;
+
+    @Column(columnDefinition = "TEXT")
+    private String aiRecommendation;  // AI tavsiyasi
+
+    private String recommendedModule; // AI tavsiya qilgan modul
 }

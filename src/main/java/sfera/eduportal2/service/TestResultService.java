@@ -11,7 +11,6 @@ import sfera.eduportal2.Repository.UserRepository;
 import sfera.eduportal2.entity.Recommendation;
 import sfera.eduportal2.entity.TestResult;
 import sfera.eduportal2.entity.Users;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -120,11 +119,10 @@ public class TestResultService {
                 
                 // O'ZGARISH: .moduleName() emas, balki .categoryName() bo'ldi
                 // Chunki endi Test Entity Module ga emas, Category ga bog'langan
-                .categoryName(result.getTest().getCategory().getName()) 
-                
-                .score(result.getScore())
-                .takenAt(result.getTakenAt())
-                .aiRecommendationMessage(aiMessage)
+                .categoryName(result.getTestSession().getCategory().getName())
+
+                .scorePercent(result.getScorePercent())
+                .aiRecommendation(aiMessage)
                 .build();
     }
 }
