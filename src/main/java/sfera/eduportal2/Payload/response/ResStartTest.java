@@ -1,6 +1,8 @@
 package sfera.eduportal2.Payload.response;
 import lombok.Builder;
 import lombok.Data;
+import sfera.eduportal2.Payload.response.ResQuestions;
+
 import java.sql.Time;
 import java.util.List;
 

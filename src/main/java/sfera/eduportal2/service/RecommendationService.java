@@ -34,7 +34,7 @@ public class RecommendationService {
     @Value("${gemini.api.key}")
     private String apiKey;
 
-    private static final String GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=";
+    String GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=";
     private final RecommendationRepository recommendationRepository;
     private final UserRepository userRepository;
     private final ModuleRepository moduleRepository;
@@ -151,7 +151,7 @@ public class RecommendationService {
         Users user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Foydalanuvchi topilmadi: id=" + userId));
 
-        return recommendationRepository.findAllByUsers(user)
+        return recommendationRepository.findTopByUsersOrderByCreatedAtDesc(user)
                 .stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());

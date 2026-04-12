@@ -76,7 +76,7 @@ public class TestService {
         // 8-band: Test sessiyasini avtomatik orqa fonda yaratamiz (Endi Kategoriyaga ulanadi)
         Test testSession = Test.builder()
                 .user(user)
-                .category(category) 
+                .category(category)
                 .timeLimit(timeLimit)
                 .build();
         testRepository.save(testSession);
@@ -91,7 +91,7 @@ public class TestService {
         testResultRepository.save(activeSession);
 
         // 10-band: Entity o'rniga DTO (ResQuestions) yasaymiz
-        List<ResQuestions> questionDtos = questions.stream().map(q -> 
+        List<ResQuestions> questionDtos = questions.stream().map(q ->
                 ResQuestions.builder()
                         .id(q.getId())
                         .text(q.getText())
@@ -107,7 +107,7 @@ public class TestService {
                 .build();
 
         // 7-band: Aniq va tushunarli ma'lumot (xabar) qaytarish
-        String exactMessage = String.format("'%s' kategoriyasi bo'yicha test muvaffaqiyatli boshlandi. Sizda %d ta savol va %d daqiqa vaqt bor.", 
+        String exactMessage = String.format("'%s' kategoriyasi bo'yicha test muvaffaqiyatli boshlandi. Sizda %d ta savol va %d daqiqa vaqt bor.",
                 category.getName(), questionCount, questionCount);
 
         return ApiResponse.builder()

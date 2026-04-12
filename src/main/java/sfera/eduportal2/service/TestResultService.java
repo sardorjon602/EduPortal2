@@ -103,25 +103,24 @@ public class TestResultService {
 
     // ==================== HELPER METHOD ====================
     // Entityni DTO ga o'girish
+    // ==================== HELPER METHOD ====================
+    // Entityni DTO ga o'girish
     private ResTestResult toResponseDTO(TestResult result) {
-        
-        // O'sha natija foydalanuvchisiga AI qanday tavsiya berganini tortib olamiz
+
         String aiMessage = "Tavsiya topilmadi";
-        List<Recommendation> recommendations = recommendationRepository.findAllByUsers(result.getUsers());
-        if (!recommendations.isEmpty()) {
-            // Eng so'nggi tavsiyani olamiz (agar ro'yxat bo'lsa oxirgisi)
-            aiMessage = recommendations.get(recommendations.size() - 1).getReason();
+
+        // Barcha ro'yxatni emas, faqat eng oxirgisini bazadan so'raymiz (N+1 xatosini oldini olish uchun)
+        Optional<Recommendation> lastRecommendation = recommendationRepository.findTopByUsersOrderByIdDesc(result.getUsers());
+
+        if (lastRecommendation.isPresent()) {
+            aiMessage = lastRecommendation.get().getReason();
         }
 
         return ResTestResult.builder()
                 .id(result.getId())
                 .userId(result.getUsers().getId())
                 .userName(result.getUsers().getFullName())
-                
-                // O'ZGARISH: .moduleName() emas, balki .categoryName() bo'ldi
-                // Chunki endi Test Entity Module ga emas, Category ga bog'langan
-                .categoryName(result.getTest().getCategory().getName()) 
-                
+                .categoryName(result.getTest().getCategory().getName()) // Test Entity endi Category ga bog'langan
                 .score(result.getScore())
                 .takenAt(result.getTakenAt())
                 .aiRecommendationMessage(aiMessage)

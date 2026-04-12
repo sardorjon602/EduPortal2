@@ -1,7 +1,6 @@
 package sfera.eduportal2.Payload.request;
 
 import lombok.Data;
-import java.util.Map;
 
 @Data
 public class ReqStopTest {
