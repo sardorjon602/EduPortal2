@@ -9,29 +9,33 @@ import sfera.eduportal2.Payload.response.ResCategory;
 import sfera.eduportal2.Repository.CategoryRepository;
 import sfera.eduportal2.entity.Category;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
 
 @Service
 @RequiredArgsConstructor
 public class CategoryService {
-    private final CategoryRepository categoryRepository;
 
+    private final CategoryRepository categoryRepository;
 
     public ApiResponse findAll() {
         List<Category> all = categoryRepository.findAll();
-        List<ResCategory> resList = new ArrayList<>();
 
-        for (Category category : all) {
-            ResCategory res = ResCategory.builder()
-                    .id(category.getId())
-                    .name(category.getName())
-                    .questionCount(category.getQuestionCount())
+        if (all.isEmpty()) {
+            return ApiResponse.builder()
+                    .message("No categories found")
+                    .success(false)
+                    .status(HttpStatus.NOT_FOUND)
                     .build();
-            resList.add(res);
         }
+
+        List<ResCategory> resList = all.stream()
+                .map(category -> ResCategory.builder()
+                        .id(category.getId())
+                        .name(category.getName())
+                        .questionCount(category.getQuestionCount())
+                        .build())
+                .toList();
 
         return ApiResponse.builder()
                 .message("Success")
@@ -41,30 +45,34 @@ public class CategoryService {
                 .build();
     }
 
-
     public ApiResponse findById(Long id) {
-        Optional<Category> optional = categoryRepository.findById(id);
-        if (optional.isEmpty()) {
+        if (id == null || id <= 0) {
             return ApiResponse.builder()
-                    .message("Category not found")
+                    .message("Invalid category ID")
                     .success(false)
-                    .status(HttpStatus.NOT_FOUND)
+                    .status(HttpStatus.BAD_REQUEST)
                     .build();
         }
 
-        Category category = optional.get();
-        ResCategory res = ResCategory.builder()
-                .id(category.getId())
-                .name(category.getName())
-                .questionCount(category.getQuestionCount())
-                .build();
-
-        return ApiResponse.builder()
-                .message("Success")
-                .success(true)
-                .status(HttpStatus.OK)
-                .body(res)
-                .build();
+        return categoryRepository.findById(id)
+                .map(category -> {
+                    ResCategory res = ResCategory.builder()
+                            .id(category.getId())
+                            .name(category.getName())
+                            .questionCount(category.getQuestionCount())
+                            .build();
+                    return ApiResponse.builder()
+                            .message("Success")
+                            .success(true)
+                            .status(HttpStatus.OK)
+                            .body(res)
+                            .build();
+                })
+                .orElse(ApiResponse.builder()
+                        .message("Category not found with id: " + id)
+                        .success(false)
+                        .status(HttpStatus.NOT_FOUND)
+                        .build());
     }
 
     public ApiResponse save(ReqCategory requestCategory) {
@@ -91,12 +99,19 @@ public class CategoryService {
                 .build();
     }
 
-
     public ApiResponse update(Long id, ReqCategory requestCategory) {
+        if (id == null || id <= 0) {
+            return ApiResponse.builder()
+                    .message("Invalid category ID")
+                    .success(false)
+                    .status(HttpStatus.BAD_REQUEST)
+                    .build();
+        }
+
         Optional<Category> optional = categoryRepository.findById(id);
         if (optional.isEmpty()) {
             return ApiResponse.builder()
-                    .message("Category not found")
+                    .message("Category not found with id: " + id)
                     .success(false)
                     .status(HttpStatus.NOT_FOUND)
                     .build();
@@ -109,23 +124,12 @@ public class CategoryService {
                     .success(false)
                     .status(HttpStatus.CONFLICT)
                     .build();
-
-
-
-
-
-
-
-
-
-
-
-
         }
 
         Category category = optional.get();
         category.setName(requestCategory.getName());
         category.setQuestionCount(requestCategory.getQuestionCount());
+
         categoryRepository.save(category);
 
         return ApiResponse.builder()
@@ -136,16 +140,35 @@ public class CategoryService {
     }
 
     public ApiResponse delete(Long id) {
+        if (id == null || id <= 0) {
+            return ApiResponse.builder()
+                    .message("Invalid category ID")
+                    .success(false)
+                    .status(HttpStatus.BAD_REQUEST)
+                    .build();
+        }
+
         Optional<Category> optional = categoryRepository.findById(id);
         if (optional.isEmpty()) {
             return ApiResponse.builder()
-                    .message("Category not found")
+                    .message("Category not found with id: " + id)
                     .success(false)
                     .status(HttpStatus.NOT_FOUND)
                     .build();
         }
 
-        categoryRepository.delete(optional.get());
+        Category category = optional.get();
+
+//        if (category.getQuestionCount() > 0) {
+//            return ApiResponse.builder()
+//                    .message("Cannot delete category with existing questions. Question count: "
+//                            + category.getQuestionCount())
+//                    .success(false)
+//                    .status(HttpStatus.CONFLICT)
+//                    .build();
+//        }
+
+        categoryRepository.delete(category);
 
         return ApiResponse.builder()
                 .message("Category successfully deleted")

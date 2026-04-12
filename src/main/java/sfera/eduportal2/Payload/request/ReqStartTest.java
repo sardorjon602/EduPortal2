@@ -1,8 +1,12 @@
 package sfera.eduportal2.Payload.request;
-import lombok.Data;
+
+import lombok.*;
 
 @Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class ReqStartTest {
+    private Long userId;
     private Long categoryId;
-    private Long userId; // Agar @CurrentUser ishlatsangiz, buni olib tashlashingiz ham mumkin
 }

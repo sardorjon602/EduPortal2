@@ -1,6 +1,5 @@
 package sfera.eduportal2.controller;
 
-import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -10,26 +9,21 @@ import sfera.eduportal2.Payload.request.ReqStopTest;
 import sfera.eduportal2.service.TestService;
 
 @RestController
-@RequestMapping("/api/tests")
+@RequestMapping("/api/test")
 @RequiredArgsConstructor
 public class TestController {
 
     private final TestService testService;
 
     @PostMapping("/start")
-    // O'ZGARISH: Swagger izohi Kategoriya bo'yicha deb to'g'rilandi
-    @Operation(summary = "Kategoriya bo'yicha testni boshlash (Barcha modullar savollari jamlanadi)")
-    // @PreAuthorize("hasAnyRole('ROLE_STUDENT', 'ROLE_USER')")
-    public ResponseEntity<ApiResponse> startTest(@RequestBody ReqStartTest request) {
-        ApiResponse response = testService.startTest(request);
+    public ResponseEntity<ApiResponse> startTest(@RequestBody ReqStartTest req) {
+        ApiResponse response = testService.startTest(req);
         return ResponseEntity.status(response.getStatus()).body(response);
     }
 
     @PostMapping("/stop")
-    @Operation(summary = "Testni yakunlash va AI dan tavsiya olish")
-    // @PreAuthorize("hasAnyRole('ROLE_STUDENT', 'ROLE_USER')")
-    public ResponseEntity<ApiResponse> stopTest(@RequestBody ReqStopTest request) {
-        ApiResponse response = testService.stopTest(request);
+    public ResponseEntity<ApiResponse> stopTest(@RequestBody ReqStopTest req) {
+        ApiResponse response = testService.stopTest(req);
         return ResponseEntity.status(response.getStatus()).body(response);
     }
 }

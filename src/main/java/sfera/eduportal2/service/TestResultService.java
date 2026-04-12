@@ -103,17 +103,14 @@ public class TestResultService {
 
     // ==================== HELPER METHOD ====================
     // Entityni DTO ga o'girish
-    // ==================== HELPER METHOD ====================
-    // Entityni DTO ga o'girish
     private ResTestResult toResponseDTO(TestResult result) {
-
+        
+        // O'sha natija foydalanuvchisiga AI qanday tavsiya berganini tortib olamiz
         String aiMessage = "Tavsiya topilmadi";
-
-        // Barcha ro'yxatni emas, faqat eng oxirgisini bazadan so'raymiz (N+1 xatosini oldini olish uchun)
-        Optional<Recommendation> lastRecommendation = recommendationRepository.findTopByUsersOrderByIdDesc(result.getUsers());
-
-        if (lastRecommendation.isPresent()) {
-            aiMessage = lastRecommendation.get().getReason();
+        List<Recommendation> recommendations = recommendationRepository.findAllByUsers(result.getUsers());
+        if (!recommendations.isEmpty()) {
+            // Eng so'nggi tavsiyani olamiz (agar ro'yxat bo'lsa oxirgisi)
+            aiMessage = recommendations.get(recommendations.size() - 1).getReason();
         }
 
         return ResTestResult.builder()
