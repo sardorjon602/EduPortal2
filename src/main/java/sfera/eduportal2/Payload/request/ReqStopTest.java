@@ -1,14 +1,11 @@
 package sfera.eduportal2.Payload.request;
 
-import lombok.*;
-import java.util.Map;
+import lombok.Data;
 
 @Data
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
 public class ReqStopTest {
+    private Long testId;
     private Long sessionId;
     private Long userId;
-    private Map<Long, Long> answers; // { questionId: optionId }
+    private Double score;
 }

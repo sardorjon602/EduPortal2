@@ -2,6 +2,7 @@ package sfera.eduportal2.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import sfera.eduportal2.entity.Template.AbsEntity;
 
 @Entity
 @Table()
@@ -10,11 +11,9 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Category {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    @Column(nullable = false, unique = true)
+public class Category extends AbsEntity {
+
+
     private String name;
 
 
