@@ -24,7 +24,7 @@ public class TestResultController {
     }
 
     @GetMapping("/my-results/{userId}")
-    @Operation(summary = "(STUDENT) O'zining test natijalari tarixini ko'rish")
+       @Operation(summary = "(STUDENT) O'zining test natijalari tarixini ko'rish")
     // Agar @CurrentUser ishlatsangiz {userId} ni url dan emas, token ichidan olishingiz ham mumkin.
     // @PreAuthorize("hasAnyRole('USER', 'STUDENT')") 
     public ResponseEntity<ApiResponse> getMyResults(@PathVariable Long userId) {

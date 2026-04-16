@@ -8,5 +8,5 @@ import java.util.List;
 
 @Repository
 public interface TestResultRepository extends JpaRepository<TestResult, Long> {
-    List<TestResult>  findByUsersOrderByTakenAtDesc(Users users);
+    List<TestResult> findByUsersOrderByCreatedAtDesc(Users users);
 }

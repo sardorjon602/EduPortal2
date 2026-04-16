@@ -1,5 +1,6 @@
 package sfera.eduportal2.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +16,7 @@ public class QuestionsController {
     private final QuestionsService questionsService;
 
     @PostMapping("/save")
+    @Operation(summary = "Type -> OPTION, TEXT")
     public ResponseEntity<ApiResponse> saveQuestions(@RequestBody ReqQuestions reqQuestions) {
         ApiResponse response = questionsService.saveQuestion(reqQuestions);
         return ResponseEntity.status(response.getStatus()).body(response);

@@ -7,7 +7,7 @@ import java.util.List;
 
 @Repository
 public interface OptionsRepository extends JpaRepository<Options, Long> {
-    boolean existsByQuestionsIdAndIsCorrectTrue(Long questionsId);
-    boolean existsByQuestionsIdAndIsCorrectTrueAndIdNot(Long questionsId, Long id);
+    boolean existsByQuestionsIdAndCorrectTrue(Long questionsId);
+    boolean existsByQuestionsIdAndCorrectTrueAndIdNot(Long questionsId, Long id);
     List<Options> findAllByQuestionsIdIn(List<Long> questionIds);
 }

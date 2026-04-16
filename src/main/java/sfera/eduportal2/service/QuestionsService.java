@@ -56,7 +56,6 @@ public class QuestionsService {
                 .message("Saved successfully")
                 .success(true)
                 .status(HttpStatus.OK)
-                .body(toResQuestions(question))
                 .build();
     }
 

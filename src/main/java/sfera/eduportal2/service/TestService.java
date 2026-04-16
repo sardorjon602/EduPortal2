@@ -12,6 +12,7 @@ import sfera.eduportal2.Payload.response.*;
 import sfera.eduportal2.Repository.*;
 import sfera.eduportal2.entity.*;
 import sfera.eduportal2.entity.Module;
+import sfera.eduportal2.entity.enums.Type;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -34,7 +35,7 @@ public class TestService {
     private String apiKey;
 
     private static final String GEMINI_URL =
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
     // ================================================================
     // TESTNI BOSHLASH
@@ -76,7 +77,6 @@ public class TestService {
         int questionCount = questions.size();
         long timeLimitSeconds = (long) questionCount * 60;
 
-        // TestSession saqlaymiz
         TestSession testSession = testSessionRepository.save(
                 TestSession.builder()
                         .users(user)
@@ -86,7 +86,6 @@ public class TestService {
                         .build()
         );
 
-        // Optionlarni BATCH da olamiz
         List<Long> questionIds = questions.stream()
                 .map(Questions::getId)
                 .collect(Collectors.toList());
@@ -97,7 +96,6 @@ public class TestService {
         Map<Long, List<Options>> optionsByQuestionId = allOptions.stream()
                 .collect(Collectors.groupingBy(opt -> opt.getQuestions().getId()));
 
-        // DTO — isCorrect false qilib yuboramiz
         List<ResQuestions> questionDtos = questions.stream().map(q -> {
             List<ResOptions> optionDtos = optionsByQuestionId
                     .getOrDefault(q.getId(), List.of())
@@ -121,20 +119,18 @@ public class TestService {
                     .build();
         }).collect(Collectors.toList());
 
-        ResStartTest responseDto = ResStartTest.builder()
-                .sessionId(testSession.getId())
-                .categoryName(category.getName())
-                .timeLimitSeconds(timeLimitSeconds)
-                .questions(questionDtos)
-                .build();
-
         return ApiResponse.builder()
                 .message(String.format(
                         "'%s' kategoriyasi bo'yicha test boshlandi. %d ta savol, %d daqiqa.",
                         category.getName(), questionCount, questionCount))
                 .success(true)
                 .status(HttpStatus.OK)
-                .body(responseDto)
+                .body(ResStartTest.builder()
+                        .sessionId(testSession.getId())
+                        .categoryName(category.getName())
+                        .timeLimitSeconds(timeLimitSeconds)
+                        .questions(questionDtos)
+                        .build())
                 .build();
     }
 
@@ -142,10 +138,9 @@ public class TestService {
     // TESTNI YAKUNLASH + AI TAVSIYA
     // ================================================================
     public ApiResponse stopTest(ReqStopTest req) {
-        if (req.getSessionId() == null || req.getUserId() == null
-                || req.getAnswers() == null || req.getAnswers().isEmpty()) {
+        if (req.getSessionId() == null || req.getUserId() == null) {
             return ApiResponse.builder()
-                    .message("SessionId, UserId va Answers bo'sh bo'lmasligi kerak!")
+                    .message("SessionId va UserId bo'sh bo'lmasligi kerak!")
                     .success(false)
                     .status(HttpStatus.BAD_REQUEST)
                     .build();
@@ -162,77 +157,111 @@ public class TestService {
         }
 
         TestSession testSession = sessionOpt.get();
-        Map<Long, Long> answers = req.getAnswers();
 
-        // Savollar va optionlarni BATCH da olamiz
-        List<Long> questionIds = new ArrayList<>(answers.keySet());
-        List<Questions> questionsList = questionsRepository.findAllById(questionIds);
-        List<Options> allOptions = optionsRepository.findAllByQuestionsIdIn(questionIds);
+        // answers va textAnswers null bo'lsa bo'sh Map
+        Map<Long, Long> answers = req.getAnswers() != null
+                ? req.getAnswers() : new HashMap<>();
+        Map<Long, String> textAnswers = req.getTextAnswers() != null
+                ? req.getTextAnswers() : new HashMap<>();
+
+        // Barcha questionId lar
+        Set<Long> allQuestionIds = new HashSet<>();
+        allQuestionIds.addAll(answers.keySet());
+        allQuestionIds.addAll(textAnswers.keySet());
+
+        if (allQuestionIds.isEmpty()) {
+            return ApiResponse.builder()
+                    .message("Hech qanday javob berilmadi!")
+                    .success(false)
+                    .status(HttpStatus.BAD_REQUEST)
+                    .build();
+        }
+
+        List<Questions> questionsList = questionsRepository
+                .findAllById(new ArrayList<>(allQuestionIds));
+        List<Options> allOptions = optionsRepository
+                .findAllByQuestionsIdIn(new ArrayList<>(answers.keySet()));
 
         Map<Long, List<Options>> optionsByQuestionId = allOptions.stream()
                 .collect(Collectors.groupingBy(opt -> opt.getQuestions().getId()));
 
-        // ---- SCORE HISOBLASH ----
         int correct = 0;
         int total = questionsList.size();
         Map<Long, ModuleStats> moduleStatsMap = new LinkedHashMap<>();
-        StringBuilder promptBody = new StringBuilder();
+        StringBuilder optionPrompt = new StringBuilder();
+        StringBuilder textPrompt = new StringBuilder();
         List<UserAnswer> userAnswers = new ArrayList<>();
 
         for (Questions q : questionsList) {
-            Long selectedOptId = answers.get(q.getId());
-            List<Options> opts = optionsByQuestionId
-                    .getOrDefault(q.getId(), List.of());
-
-            // Tanlangan option
-            Options selectedOption = opts.stream()
-                    .filter(opt -> opt.getId().equals(selectedOptId))
-                    .findFirst()
-                    .orElse(null);
-
-            String selectedText = selectedOption != null
-                    ? selectedOption.getText() : "Javob berilmagan";
-
-            String correctText = opts.stream()
-                    .filter(Options::isCorrect)
-                    .map(Options::getText)
-                    .findFirst()
-                    .orElse("Noma'lum");
-
-            boolean isCorrect = selectedOption != null && selectedOption.isCorrect();
-            if (isCorrect) correct++;
-
-            // UserAnswer saqlaymiz
-            userAnswers.add(UserAnswer.builder()
-                    .testSession(testSession)
-                    .questions(q)
-                    .selectedOption(selectedOption)
-                    .isCorrect(isCorrect)
-                    .build());
-
-            // Modul statistikasi
-            if (q.getModule() != null) {
-                moduleStatsMap.computeIfAbsent(
-                        q.getModule().getId(),
-                        id -> new ModuleStats(q.getModule()));
-                moduleStatsMap.get(q.getModule().getId()).addResult(isCorrect);
-            }
-
             String moduleName = q.getModule() != null
                     ? q.getModule().getModuleName() : "Noma'lum";
 
-            promptBody.append("Modul: ").append(moduleName).append("\n");
-            promptBody.append("Savol: ").append(q.getText()).append("\n");
-            promptBody.append("Berilgan javob: ").append(selectedText).append("\n");
-            promptBody.append("To'g'ri javob: ").append(correctText).append("\n");
-            promptBody.append("Natija: ")
-                    .append(isCorrect ? "TO'G'RI" : "NOTO'G'RI").append("\n\n");
+            if (q.getType() == Type.OPTION) {
+                // ---- OPTION TYPE — DB da tekshiramiz ----
+                Long selectedOptId = answers.get(q.getId());
+                List<Options> opts = optionsByQuestionId
+                        .getOrDefault(q.getId(), List.of());
+
+                Options selectedOption = opts.stream()
+                        .filter(opt -> opt.getId().equals(selectedOptId))
+                        .findFirst().orElse(null);
+
+                String selectedText = selectedOption != null
+                        ? selectedOption.getText() : "Javob berilmagan";
+                String correctText = opts.stream()
+                        .filter(Options::isCorrect)
+                        .map(Options::getText)
+                        .findFirst().orElse("Noma'lum");
+
+                boolean isCorrect = selectedOption != null && selectedOption.isCorrect();
+                if (isCorrect) correct++;
+
+                userAnswers.add(UserAnswer.builder()
+                        .testSession(testSession)
+                        .questions(q)
+                        .selectedOption(selectedOption)
+                        .isCorrect(isCorrect)
+                        .build());
+
+                if (q.getModule() != null) {
+                    moduleStatsMap.computeIfAbsent(
+                            q.getModule().getId(),
+                            id -> new ModuleStats(q.getModule()));
+                    moduleStatsMap.get(q.getModule().getId()).addResult(isCorrect);
+                }
+
+                optionPrompt.append("Modul: ").append(moduleName).append("\n");
+                optionPrompt.append("Savol: ").append(q.getText()).append("\n");
+                optionPrompt.append("Berilgan javob: ").append(selectedText).append("\n");
+                optionPrompt.append("To'g'ri javob: ").append(correctText).append("\n");
+                optionPrompt.append("Natija: ")
+                        .append(isCorrect ? "TO'G'RI" : "NOTO'G'RI").append("\n\n");
+
+            } else if (q.getType() == Type.TEXT) {
+                // ---- TEXT TYPE — AI tekshiradi ----
+                String userText = textAnswers.getOrDefault(
+                        q.getId(), "Javob berilmagan");
+
+                userAnswers.add(UserAnswer.builder()
+                        .testSession(testSession)
+                        .questions(q)
+                        .textAnswer(userText)
+                        .isCorrect(false)
+                        .build());
+
+                if (q.getModule() != null) {
+                    moduleStatsMap.computeIfAbsent(
+                            q.getModule().getId(),
+                            id -> new ModuleStats(q.getModule()));
+                }
+
+                textPrompt.append("Modul: ").append(moduleName).append("\n");
+                textPrompt.append("Savol: ").append(q.getText()).append("\n");
+                textPrompt.append("User javobi: ").append(userText).append("\n\n");
+            }
         }
 
-        // UserAnswer larni saqlaymiz
         userAnswerRepository.saveAll(userAnswers);
-
-        // TestSession ni yakunlaymiz
         testSession.setFinished(true);
         testSession.setEndTime(LocalDateTime.now());
         testSession.setUserAnswers(userAnswers);
@@ -240,47 +269,47 @@ public class TestService {
 
         double scorePercent = total > 0 ? (correct * 100.0 / total) : 0.0;
 
-        String fullPrompt = String.format(
-                "Umumiy natija: %d/%d (%.1f%%)\n\n", correct, total, scorePercent)
-                + promptBody;
+        // AI ga yuborish uchun to'liq prompt
+        StringBuilder fullPrompt = new StringBuilder();
+        fullPrompt.append(String.format(
+                "Umumiy natija: %d/%d (%.1f%%)\n\n", correct, total, scorePercent));
 
-        // Eng zaif modul
+        if (optionPrompt.length() > 0) {
+            fullPrompt.append("OPTION SAVOLLAR:\n").append(optionPrompt);
+        }
+        if (textPrompt.length() > 0) {
+            fullPrompt.append("TEXT SAVOLLAR (siz tekshiring):\n").append(textPrompt);
+        }
+
+        String aiRecommendation = callGeminiApi(fullPrompt.toString());
+
         Module weakestModule = moduleStatsMap.values().stream()
                 .max(Comparator.comparingDouble(ModuleStats::errorRate))
-                .map(ModuleStats::getModule)
-                .orElse(null);
+                .map(ModuleStats::getModule).orElse(null);
 
-        // Gemini ga yuboramiz
-        String aiRecommendation = callGeminiApi(fullPrompt);
-
-        // TestResult saqlaymiz
-        testResultRepository.save(
-                TestResult.builder()
-                        .users(testSession.getUsers())
-                        .testSession(testSession)
-                        .correctCount(correct)
-                        .totalCount(total)
-                        .scorePercent(scorePercent)
-                        .aiRecommendation(aiRecommendation)
-                        .recommendedModule(weakestModule != null
-                                ? weakestModule.getModuleName() : "Aniqlanmadi")
-                        .build()
-        );
-
-        ResStopTest responseDto = ResStopTest.builder()
+        testResultRepository.save(TestResult.builder()
+                .users(testSession.getUsers())
+                .testSession(testSession)
                 .correctCount(correct)
                 .totalCount(total)
                 .scorePercent(scorePercent)
+                .aiRecommendation(aiRecommendation)
                 .recommendedModule(weakestModule != null
                         ? weakestModule.getModuleName() : "Aniqlanmadi")
-                .aiRecommendation(aiRecommendation)
-                .build();
+                .build());
 
         return ApiResponse.builder()
                 .message("Test yakunlandi! AI natijangizni tahlil qildi.")
                 .success(true)
                 .status(HttpStatus.OK)
-                .body(responseDto)
+                .body(ResStopTest.builder()
+                        .correctCount(correct)
+                        .totalCount(total)
+                        .scorePercent(scorePercent)
+                        .recommendedModule(weakestModule != null
+                                ? weakestModule.getModuleName() : "Aniqlanmadi")
+                        .aiRecommendation(aiRecommendation)
+                        .build())
                 .build();
     }
 
@@ -293,16 +322,19 @@ public class TestService {
             headers.setContentType(MediaType.APPLICATION_JSON);
 
             String systemPrompt = """
-                    O'quvchining test natijalarini tahlil qilib, \
-                    quyidagi formatda javob ber:
+                    Siz ta'lim bo'yicha AI maslahatchisiz.
                     
-                    1. UMUMIY BAHO: (2-3 jumlada umumiy natijani baholash)
-                    2. ZAIF TOMONLAR: (qaysi modullarda ko'proq xato ketgan)
-                    3. TAVSIYA ETILGAN MODUL: (o'qishi kerak bo'lgan modul nomi)
-                    4. SABAB: (nima uchun aynan shu modul)
-                    5. KEYINGI QADAM: (qanday o'qish kerak, maslahat)
+                    OPTION savollar allaqachon tekshirilgan.
+                    TEXT savollar uchun user javobini tekshirib to'g'ri/noto'g'ri aniqlang.
                     
-                    Javob o'zbek tilida, rag'batlantiruvchi va aniq bo'lsin.
+                    Quyidagi formatda javob bering:
+                    1. UMUMIY BAHO: (2-3 jumlada)
+                    2. ZAIF TOMONLAR: (qaysi modullarda xato ko'p)
+                    3. TAVSIYA ETILGAN MODUL: (modul nomi)
+                    4. SABAB: (nima uchun)
+                    5. KEYINGI QADAM: (maslahat)
+                    
+                    Javob o'zbek tilida, rag'batlantiruvchi bo'lsin.
                     """;
 
             Map<String, Object> body = Map.of(

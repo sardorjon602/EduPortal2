@@ -150,6 +150,25 @@ public class UserService {
             }
         }
     }
+    public ApiResponse deleteUser(Long id){
+        Users users = userRepository.findById(id).orElse(null);
+        if (users == null) {
+            return ApiResponse.builder()
+                    .message("User not found")
+                    .success(false)
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(null)
+                    .build();
+        }
+        userRepository.delete(users);
+        return ApiResponse.builder()
+                .message("Successfully deleted")
+                .success(true)
+                .status(HttpStatus.OK)
+                .body(null)
+                .build();
+    }
+
 
 
 }
