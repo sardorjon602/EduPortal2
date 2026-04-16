@@ -35,7 +35,7 @@ public class TestService {
 
     // gemini-2.0-flash — v1beta da ishlaydi, bepul
     private static final String GEMINI_URL =
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
     // ================================================================
     // TESTNI BOSHLASH

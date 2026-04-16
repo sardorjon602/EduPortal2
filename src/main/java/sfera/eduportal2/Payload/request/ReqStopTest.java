@@ -8,7 +8,6 @@ import java.util.Map;
 import lombok.Data;
 @Data
 public class ReqStopTest {
-    private Long testId;
     private Long sessionId;
 
 
@@ -18,6 +17,5 @@ public class ReqStopTest {
     @Schema(example = "{\"2\": \"Java bu dasturlash tili\"}")
     private Map<Long, String> textAnswers; // TEXT type: { questionId: "javob" }
 
-    private Double score;
 
 }

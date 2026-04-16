@@ -28,6 +28,7 @@ public class TestResult extends AbsEntity {
     private int correctCount;
     private int totalCount;
     private double scorePercent;
+    private Double score;
 
     @Column(columnDefinition = "TEXT")
     private String aiRecommendation;  // AI tavsiyasi
