@@ -10,7 +10,6 @@ import java.util.Map;
 @NoArgsConstructor
 public class ReqStopTest {
     private Long sessionId;
-    private Long userId;
 
     @Schema(example = "{\"1\": 2, \"3\": 4}")
     private Map<Long, Long> answers; // OPTION type: { questionId: optionId }

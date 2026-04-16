@@ -7,6 +7,5 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ReqStartTest {
-    private Long userId;
     private Long categoryId;
 }

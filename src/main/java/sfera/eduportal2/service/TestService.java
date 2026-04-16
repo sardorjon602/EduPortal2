@@ -25,7 +25,6 @@ public class TestService {
     private final TestSessionRepository testSessionRepository;
     private final TestResultRepository testResultRepository;
     private final CategoryRepository categoryRepository;
-    private final UserRepository usersRepository;
     private final QuestionsRepository questionsRepository;
     private final OptionsRepository optionsRepository;
     private final UserAnswerRepository userAnswerRepository;
@@ -34,33 +33,31 @@ public class TestService {
     @Value("${gemini.api.key}")
     private String apiKey;
 
+    // gemini-2.0-flash — v1beta da ishlaydi, bepul
     private static final String GEMINI_URL =
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
     // ================================================================
     // TESTNI BOSHLASH
     // ================================================================
-    public ApiResponse startTest(ReqStartTest req) {
-        if (req.getUserId() == null || req.getCategoryId() == null) {
+    public ApiResponse startTest(ReqStartTest req, Users currentUser) {
+        if (req.getCategoryId() == null) {
             return ApiResponse.builder()
-                    .message("UserId yoki CategoryId bo'sh bo'lmasligi kerak!")
+                    .message("CategoryId bo'sh bo'lmasligi kerak!")
                     .success(false)
                     .status(HttpStatus.BAD_REQUEST)
                     .build();
         }
 
-        Optional<Users> userOpt = usersRepository.findById(req.getUserId());
         Optional<Category> categoryOpt = categoryRepository.findById(req.getCategoryId());
-
-        if (userOpt.isEmpty() || categoryOpt.isEmpty()) {
+        if (categoryOpt.isEmpty()) {
             return ApiResponse.builder()
-                    .message("Foydalanuvchi yoki Kategoriya topilmadi")
+                    .message("Kategoriya topilmadi")
                     .success(false)
                     .status(HttpStatus.NOT_FOUND)
                     .build();
         }
 
-        Users user = userOpt.get();
         Category category = categoryOpt.get();
 
         List<Questions> questions = questionsRepository
@@ -79,19 +76,22 @@ public class TestService {
 
         TestSession testSession = testSessionRepository.save(
                 TestSession.builder()
-                        .users(user)
+                        .users(currentUser) // @CurrentUser dan
                         .category(category)
                         .startTime(LocalDateTime.now())
                         .isFinished(false)
                         .build()
         );
 
-        List<Long> questionIds = questions.stream()
+        // Faqat OPTION type savollar uchun optionlarni olamiz
+        List<Long> optionQuestionIds = questions.stream()
+                .filter(q -> q.getType() == Type.OPTION)
                 .map(Questions::getId)
                 .collect(Collectors.toList());
 
-        List<Options> allOptions = optionsRepository
-                .findAllByQuestionsIdIn(questionIds);
+        List<Options> allOptions = optionQuestionIds.isEmpty()
+                ? List.of()
+                : optionsRepository.findAllByQuestionsIdIn(optionQuestionIds);
 
         Map<Long, List<Options>> optionsByQuestionId = allOptions.stream()
                 .collect(Collectors.groupingBy(opt -> opt.getQuestions().getId()));
@@ -115,7 +115,7 @@ public class TestService {
                     .type(q.getType())
                     .moduleId(q.getModule().getId())
                     .moduleName(q.getModule().getModuleName())
-                    .options(optionDtos)
+                    .options(optionDtos) // TEXT type uchun bo'sh list keladi
                     .build();
         }).collect(Collectors.toList());
 
@@ -137,10 +137,10 @@ public class TestService {
     // ================================================================
     // TESTNI YAKUNLASH + AI TAVSIYA
     // ================================================================
-    public ApiResponse stopTest(ReqStopTest req) {
-        if (req.getSessionId() == null || req.getUserId() == null) {
+    public ApiResponse stopTest(ReqStopTest req, Users currentUser) {
+        if (req.getSessionId() == null) {
             return ApiResponse.builder()
-                    .message("SessionId va UserId bo'sh bo'lmasligi kerak!")
+                    .message("SessionId bo'sh bo'lmasligi kerak!")
                     .success(false)
                     .status(HttpStatus.BAD_REQUEST)
                     .build();
@@ -158,13 +158,20 @@ public class TestService {
 
         TestSession testSession = sessionOpt.get();
 
-        // answers va textAnswers null bo'lsa bo'sh Map
+        // Sessiya shu userga tegishli ekanini tekshiramiz
+        if (!testSession.getUsers().getId().equals(currentUser.getId())) {
+            return ApiResponse.builder()
+                    .message("Bu sessiya sizga tegishli emas!")
+                    .success(false)
+                    .status(HttpStatus.FORBIDDEN)
+                    .build();
+        }
+
         Map<Long, Long> answers = req.getAnswers() != null
                 ? req.getAnswers() : new HashMap<>();
         Map<Long, String> textAnswers = req.getTextAnswers() != null
                 ? req.getTextAnswers() : new HashMap<>();
 
-        // Barcha questionId lar
         Set<Long> allQuestionIds = new HashSet<>();
         allQuestionIds.addAll(answers.keySet());
         allQuestionIds.addAll(textAnswers.keySet());
@@ -177,16 +184,25 @@ public class TestService {
                     .build();
         }
 
+        // DB da mavjud savollarni olamiz — yo'q questionId lar avtomatik filtrlanadi
         List<Questions> questionsList = questionsRepository
                 .findAllById(new ArrayList<>(allQuestionIds));
-        List<Options> allOptions = optionsRepository
-                .findAllByQuestionsIdIn(new ArrayList<>(answers.keySet()));
+
+        // Faqat mavjud va OPTION type savollar uchun optionlarni olamiz
+        List<Long> optionQuestionIds = questionsList.stream()
+                .filter(q -> q.getType() == Type.OPTION)
+                .map(Questions::getId)
+                .collect(Collectors.toList());
+
+        List<Options> allOptions = optionQuestionIds.isEmpty()
+                ? List.of()
+                : optionsRepository.findAllByQuestionsIdIn(optionQuestionIds);
 
         Map<Long, List<Options>> optionsByQuestionId = allOptions.stream()
                 .collect(Collectors.groupingBy(opt -> opt.getQuestions().getId()));
 
         int correct = 0;
-        int total = questionsList.size();
+        int total = questionsList.size(); // faqat DB da mavjud savollar sanaladi
         Map<Long, ModuleStats> moduleStatsMap = new LinkedHashMap<>();
         StringBuilder optionPrompt = new StringBuilder();
         StringBuilder textPrompt = new StringBuilder();
@@ -197,7 +213,6 @@ public class TestService {
                     ? q.getModule().getModuleName() : "Noma'lum";
 
             if (q.getType() == Type.OPTION) {
-                // ---- OPTION TYPE — DB da tekshiramiz ----
                 Long selectedOptId = answers.get(q.getId());
                 List<Options> opts = optionsByQuestionId
                         .getOrDefault(q.getId(), List.of());
@@ -238,7 +253,6 @@ public class TestService {
                         .append(isCorrect ? "TO'G'RI" : "NOTO'G'RI").append("\n\n");
 
             } else if (q.getType() == Type.TEXT) {
-                // ---- TEXT TYPE — AI tekshiradi ----
                 String userText = textAnswers.getOrDefault(
                         q.getId(), "Javob berilmagan");
 
@@ -269,11 +283,9 @@ public class TestService {
 
         double scorePercent = total > 0 ? (correct * 100.0 / total) : 0.0;
 
-        // AI ga yuborish uchun to'liq prompt
         StringBuilder fullPrompt = new StringBuilder();
         fullPrompt.append(String.format(
                 "Umumiy natija: %d/%d (%.1f%%)\n\n", correct, total, scorePercent));
-
         if (optionPrompt.length() > 0) {
             fullPrompt.append("OPTION SAVOLLAR:\n").append(optionPrompt);
         }
@@ -288,7 +300,7 @@ public class TestService {
                 .map(ModuleStats::getModule).orElse(null);
 
         testResultRepository.save(TestResult.builder()
-                .users(testSession.getUsers())
+                .users(currentUser) // @CurrentUser dan
                 .testSession(testSession)
                 .correctCount(correct)
                 .totalCount(total)
@@ -314,7 +326,7 @@ public class TestService {
     }
 
     // ================================================================
-    // GEMINI API
+    // GEMINI API — gemini-2.0-flash (v1beta, bepul)
     // ================================================================
     private String callGeminiApi(String testSummary) {
         try {
@@ -324,17 +336,19 @@ public class TestService {
             String systemPrompt = """
                     Siz ta'lim bo'yicha AI maslahatchisiz.
                     
-                    OPTION savollar allaqachon tekshirilgan.
-                    TEXT savollar uchun user javobini tekshirib to'g'ri/noto'g'ri aniqlang.
+                    OPTION savollar allaqachon tekshirilgan (to'g'ri/noto'g'ri belgilangan).
+                    TEXT savollar uchun user javobini savol bilan solishtiring va \
+                    to'g'ri yoki noto'g'ri ekanini aniqlang.
                     
                     Quyidagi formatda javob bering:
-                    1. UMUMIY BAHO: (2-3 jumlada)
-                    2. ZAIF TOMONLAR: (qaysi modullarda xato ko'p)
-                    3. TAVSIYA ETILGAN MODUL: (modul nomi)
-                    4. SABAB: (nima uchun)
-                    5. KEYINGI QADAM: (maslahat)
+                    1. UMUMIY BAHO: (2-3 jumlada natijani baholash)
+                    2. ZAIF TOMONLAR: (qaysi modullarda xato ko'p, TEXT savollarda \
+                    ham xato borligini ko'rsating)
+                    3. TAVSIYA ETILGAN MODUL: (birinchi o'qishi kerak bo'lgan modul nomi)
+                    4. SABAB: (nima uchun aynan shu modul)
+                    5. KEYINGI QADAM: (qanday o'qish kerak, amaliy maslahat)
                     
-                    Javob o'zbek tilida, rag'batlantiruvchi bo'lsin.
+                    Javob o'zbek tilida, rag'batlantiruvchi va aniq bo'lsin.
                     """;
 
             Map<String, Object> body = Map.of(
