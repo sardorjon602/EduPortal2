@@ -12,5 +12,4 @@ import lombok.NoArgsConstructor;
 public class ReqOptions {
     private String text;
     private boolean isCorrect;
-    private Long questionId;
 }

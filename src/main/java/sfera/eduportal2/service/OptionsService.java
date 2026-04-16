@@ -75,33 +75,38 @@ public class OptionsService {
                     .build();
         }
 
-        long trueCount = reqOptionsList.stream()
-                .filter(ReqOptions::isCorrect)
-                .count();
+        // 🔽 SEN BERGAN LOGIKA SHU YERGA QO‘YILDI
+        boolean alreadyHasCorrect = optionsRepository.existsByQuestionsIdAndCorrectTrue(questionId);
 
-        if (trueCount != 1) {
-            return ApiResponse.builder()
-                    .message("Exactly one option must be correct!")
-                    .success(false)
-                    .status(HttpStatus.BAD_REQUEST)
-                    .build();
-        }
-
-        boolean alreadyHasCorrect = optionsRepository.existsByQuestionsIdAndIsCorrectTrue(questionId);
-        if (alreadyHasCorrect) {
-            return ApiResponse.builder()
-                    .message("This question already has a correct option!")
-                    .success(false)
-                    .status(HttpStatus.BAD_REQUEST)
-                    .body(null)
-                    .build();
+        if (!alreadyHasCorrect) {
+            long trueCount = reqOptionsList.stream()
+                    .filter(ReqOptions::isCorrect)
+                    .count();
+            if (trueCount != 1) {
+                return ApiResponse.builder()
+                        .message("Exactly one option must be correct!")
+                        .success(false)
+                        .status(HttpStatus.BAD_REQUEST)
+                        .build();
+            }
+        } else {
+            long trueCount = reqOptionsList.stream()
+                    .filter(ReqOptions::isCorrect)
+                    .count();
+            if (trueCount > 0) {
+                return ApiResponse.builder()
+                        .message("This question already has a correct option!")
+                        .success(false)
+                        .status(HttpStatus.BAD_REQUEST)
+                        .build();
+            }
         }
 
         List<Options> optionsList = new ArrayList<>();
         for (ReqOptions reqOptions : reqOptionsList) {
             Options options = Options.builder()
                     .text(reqOptions.getText())
-                    .isCorrect(reqOptions.isCorrect())
+                    .correct(reqOptions.isCorrect())
                     .questions(questionOpt.get())
                     .build();
             optionsList.add(options);
@@ -132,21 +137,13 @@ public class OptionsService {
                     .build();
         }
 
-        Optional<Questions> questions = questionsRepository.findById(reqOptions.getQuestionId());
-        if (questions.isEmpty()) {
-            return ApiResponse.builder()
-                    .message("Question not found!")
-                    .success(false)
-                    .status(HttpStatus.NOT_FOUND)
-                    .body(null)
-                    .build();
-        }
+        Options options = byId.get();
+        // questionId ni mavjud option dan olamiz
+        Long questionId = options.getQuestions().getId();
 
         if (reqOptions.isCorrect()) {
             boolean anotherCorrectExists = optionsRepository
-                    .existsByQuestionsIdAndIsCorrectTrueAndIdNot(
-                            reqOptions.getQuestionId(), id
-                    );
+                    .existsByQuestionsIdAndCorrectTrueAndIdNot(questionId, id);
             if (anotherCorrectExists) {
                 return ApiResponse.builder()
                         .message("This question already has a correct option!")
@@ -157,11 +154,8 @@ public class OptionsService {
             }
         }
 
-        Options options = byId.get();
         options.setText(reqOptions.getText());
         options.setCorrect(reqOptions.isCorrect());
-        options.setQuestions(questions.get());
-
         optionsRepository.save(options);
 
         return ApiResponse.builder()

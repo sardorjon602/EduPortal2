@@ -1,7 +1,6 @@
 package sfera.eduportal2.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.*;
 import lombok.*;
 import sfera.eduportal2.entity.Template.AbsEntity;
 
@@ -20,7 +19,10 @@ public class UserAnswer extends AbsEntity {
     private Questions questions;
 
     @ManyToOne
-    private Options selectedOption;
+    private Options selectedOption; // OPTION type uchun
+
+    @Column(columnDefinition = "TEXT")
+    private String textAnswer; // TEXT type uchun
 
     private boolean isCorrect;
 }

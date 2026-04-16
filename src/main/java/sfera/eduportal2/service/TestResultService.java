@@ -56,7 +56,7 @@ public class TestResultService {
         }
 
         // testResultRepository ichida findByUsersOrderByTakenAtDesc(Users user) metodi bo'lishi kerak
-        List<TestResult> userResults = testResultRepository.findByUsersOrderByTakenAtDesc(userOpt.get());
+        List<TestResult> userResults = testResultRepository.findByUsersOrderByCreatedAtDesc(userOpt.get());
 
         if (userResults.isEmpty()) {
              return ApiResponse.builder()

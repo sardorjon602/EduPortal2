@@ -17,7 +17,7 @@ public class Options extends AbsEntity {
     @ManyToOne
     private Questions questions;
 
-    private boolean isCorrect;
+    private boolean correct;
 
     private String text;
 
