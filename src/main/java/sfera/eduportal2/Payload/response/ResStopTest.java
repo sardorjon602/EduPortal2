@@ -10,6 +10,6 @@ public class ResStopTest {
     private int correctAnswers;
     private int totalQuestions;
     private String scorePercent;
-    private String weakestModule;
+    private String recommendedModule;
     private String aiRecommendation;
 }

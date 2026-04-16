@@ -315,9 +315,9 @@ public class TestService {
                 .success(true)
                 .status(HttpStatus.OK)
                 .body(ResStopTest.builder()
-                        .correctCount(correct)
-                        .totalCount(total)
-                        .scorePercent(scorePercent)
+                        .correctAnswers(correct)
+                        .totalQuestions(total)
+                        .scorePercent(String.valueOf(scorePercent))
                         .recommendedModule(weakestModule != null
                                 ? weakestModule.getModuleName() : "Aniqlanmadi")
                         .aiRecommendation(aiRecommendation)
