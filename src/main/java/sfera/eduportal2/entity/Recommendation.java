@@ -1,6 +1,7 @@
 package sfera.eduportal2.entity;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import lombok.*;
 import sfera.eduportal2.entity.Template.AbsEntity;
@@ -13,10 +14,10 @@ import sfera.eduportal2.entity.Template.AbsEntity;
 @Builder
 public class Recommendation extends AbsEntity {
 
-    @OneToOne
+    @ManyToOne
     private Users users;
 
-    @OneToOne
+    @ManyToOne
     private Module module;
 
     private String reason;

@@ -1,32 +1,37 @@
 package sfera.eduportal2.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 import sfera.eduportal2.Payload.ApiResponse;
 import sfera.eduportal2.Payload.request.ReqStartTest;
 import sfera.eduportal2.Payload.request.ReqStopTest;
-import sfera.eduportal2.Payload.response.*;
+import sfera.eduportal2.Payload.response.ResQuestions;
+import sfera.eduportal2.Payload.response.ResStartTest;
 import sfera.eduportal2.Repository.*;
 import sfera.eduportal2.entity.*;
+
 import sfera.eduportal2.entity.Module;
 import sfera.eduportal2.entity.enums.Type;
 
+
+import java.sql.Time;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class TestService {
 
-    private final TestSessionRepository testSessionRepository;
-    private final TestResultRepository testResultRepository;
-    private final CategoryRepository categoryRepository;
+    private final TestRepository testRepository;
+    private final CategoryRepository categoryRepository; // Modul o'rniga Kategoriya repozitoriysi
     private final UserRepository usersRepository;
     private final QuestionsRepository questionsRepository;
+
     private final OptionsRepository optionsRepository;
     private final UserAnswerRepository userAnswerRepository;
     private final RestTemplate restTemplate;
@@ -37,13 +42,18 @@ public class TestService {
     private static final String GEMINI_URL =
             "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
-    // ================================================================
-    // TESTNI BOSHLASH
-    // ================================================================
+    private final TestResultRepository testResultRepository;
+    private final RecommendationService recommendationService;
+
+
+    // ====================================================================
+    // TESTNI BOSHLASH (KATEGORIYA BO'YICHA)
+    // ====================================================================
     public ApiResponse startTest(ReqStartTest req) {
+        // 6-band: userId va categoryId xatosini to'liq nazorat qilish
         if (req.getUserId() == null || req.getCategoryId() == null) {
             return ApiResponse.builder()
-                    .message("UserId yoki CategoryId bo'sh bo'lmasligi kerak!")
+                    .message("UserId yoki CategoryId bo'sh bo'lishi mumkin emas!")
                     .success(false)
                     .status(HttpStatus.BAD_REQUEST)
                     .build();
@@ -54,7 +64,7 @@ public class TestService {
 
         if (userOpt.isEmpty() || categoryOpt.isEmpty()) {
             return ApiResponse.builder()
-                    .message("Foydalanuvchi yoki Kategoriya topilmadi")
+                    .message("Foydalanuvchi yoki Kategoriya tizimda topilmadi")
                     .success(false)
                     .status(HttpStatus.NOT_FOUND)
                     .build();
@@ -63,18 +73,19 @@ public class TestService {
         Users user = userOpt.get();
         Category category = categoryOpt.get();
 
-        List<Questions> questions = questionsRepository
-                .findByModuleCategoryId(category.getId());
-
+        // Kategoriya ichidagi BARCHA modullarning savollarini olish
+        List<Questions> questions = questionsRepository.findAllByModule_CategoryId(category.getId());
         if (questions.isEmpty()) {
             return ApiResponse.builder()
-                    .message(category.getName() + " kategoriyasi uchun savollar topilmadi")
+                    .message(category.getName() + " kategoriyasi uchun hali savollar kiritilmagan")
                     .success(false)
                     .status(HttpStatus.BAD_REQUEST)
                     .build();
         }
 
+        // Vaqtni hisoblash (har bir savolga 1 daqiqadan beramiz)
         int questionCount = questions.size();
+
         long timeLimitSeconds = (long) questionCount * 60;
 
         TestSession testSession = testSessionRepository.save(
@@ -119,10 +130,48 @@ public class TestService {
                     .build();
         }).collect(Collectors.toList());
 
+        long durationMillis = questionCount * 60 * 1000L;
+        Time timeLimit = new Time(System.currentTimeMillis() + durationMillis);
+
+        // 8-band: Test sessiyasini avtomatik orqa fonda yaratamiz (Endi Kategoriyaga ulanadi)
+        Test testSession = Test.builder()
+                .user(user)
+                .category(category)
+                .timeLimit(timeLimit)
+                .build();
+        testRepository.save(testSession);
+
+        // Natija (score) ni saqlash uchun qolip ochamiz
+        TestResult activeSession = TestResult.builder()
+                .users(user)
+                .test(testSession)
+                .score(0.0)
+                .takenAt(LocalDateTime.now())
+                .build();
+        testResultRepository.save(activeSession);
+
+        // 10-band: Entity o'rniga DTO (ResQuestions) yasaymiz
+        List<ResQuestions> questionDtos = questions.stream().map(q ->
+                ResQuestions.builder()
+                        .id(q.getId())
+                        .text(q.getText())
+                        .type(q.getType())
+                        .build()
+        ).collect(Collectors.toList());
+
+        ResStartTest responseDto = ResStartTest.builder()
+                .sessionId(activeSession.getId())
+                .categoryName(category.getName()) // moduleName emas, categoryName
+                .timeLimit(timeLimit)
+                .questions(questionDtos)
+                .build();
+
+        // 7-band: Aniq va tushunarli ma'lumot (xabar) qaytarish
+        String exactMessage = String.format("'%s' kategoriyasi bo'yicha test muvaffaqiyatli boshlandi. Sizda %d ta savol va %d daqiqa vaqt bor.",
+                category.getName(), questionCount, questionCount);
+
         return ApiResponse.builder()
-                .message(String.format(
-                        "'%s' kategoriyasi bo'yicha test boshlandi. %d ta savol, %d daqiqa.",
-                        category.getName(), questionCount, questionCount))
+                .message(exactMessage)
                 .success(true)
                 .status(HttpStatus.OK)
                 .body(ResStartTest.builder()
@@ -134,27 +183,33 @@ public class TestService {
                 .build();
     }
 
-    // ================================================================
-    // TESTNI YAKUNLASH + AI TAVSIYA
-    // ================================================================
+    // ====================================================================
+    // TESTNI YAKUNLASH VA AI TAVSIYASI
+    // ====================================================================
     public ApiResponse stopTest(ReqStopTest req) {
+
         if (req.getSessionId() == null || req.getUserId() == null) {
             return ApiResponse.builder()
                     .message("SessionId va UserId bo'sh bo'lmasligi kerak!")
+
+        if (req.getSessionId() == null || req.getScore() == null) {
+            return ApiResponse.builder()
+                    .message("SessionId va Score kiritilishi shart!")
+
                     .success(false)
                     .status(HttpStatus.BAD_REQUEST)
                     .build();
         }
 
-        Optional<TestSession> sessionOpt = testSessionRepository
-                .findById(req.getSessionId());
+        Optional<TestResult> sessionOpt = testResultRepository.findById(req.getSessionId());
         if (sessionOpt.isEmpty()) {
             return ApiResponse.builder()
-                    .message("Test sessiyasi topilmadi")
+                    .message("Faol test sessiyasi topilmadi")
                     .success(false)
                     .status(HttpStatus.NOT_FOUND)
                     .build();
         }
+
 
         TestSession testSession = sessionOpt.get();
 
@@ -298,10 +353,26 @@ public class TestService {
                         ? weakestModule.getModuleName() : "Aniqlanmadi")
                 .build());
 
+        TestResult session = sessionOpt.get();
+
+        // Natijani saqlaymiz
+        session.setScore(req.getScore());
+        session.setTakenAt(LocalDateTime.now());
+        testResultRepository.save(session);
+
+        // AI Recommendation xizmatini chaqirib tavsiya olamiz
+        var aiRecommendation = recommendationService.generateAndSave(session.getUsers().getId());
+
+        Map<String, Object> responseData = new HashMap<>();
+        responseData.put("finalScore", session.getScore());
+        responseData.put("aiRecommendation", aiRecommendation);
+
+
         return ApiResponse.builder()
-                .message("Test yakunlandi! AI natijangizni tahlil qildi.")
+                .message("Test yakunlandi. AI natijangizni tahlil qildi.")
                 .success(true)
                 .status(HttpStatus.OK)
+
                 .body(ResStopTest.builder()
                         .correctCount(correct)
                         .totalCount(total)
@@ -388,4 +459,9 @@ public class TestService {
         double errorRate() { return total > 0 ? (double) errors / total : 0; }
         Module getModule() { return module; }
     }
+
+                .body(responseData)
+                .build();
+    }
+
 }
