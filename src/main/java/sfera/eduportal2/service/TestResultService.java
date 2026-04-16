@@ -5,13 +5,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import sfera.eduportal2.Payload.ApiResponse;
 import sfera.eduportal2.Payload.response.ResTestResult;
-import sfera.eduportal2.Repository.RecommendationRepository;
 import sfera.eduportal2.Repository.TestResultRepository;
 import sfera.eduportal2.Repository.UserRepository;
-import sfera.eduportal2.entity.Recommendation;
 import sfera.eduportal2.entity.TestResult;
 import sfera.eduportal2.entity.Users;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -22,14 +21,13 @@ public class TestResultService {
 
     private final TestResultRepository testResultRepository;
     private final UserRepository userRepository;
-    private final RecommendationRepository recommendationRepository;
 
     // ====================================================================
     // ADMIN UCHUN: Barcha natijalarni ko'rish
     // ====================================================================
     public ApiResponse getAllResults() {
         List<TestResult> results = testResultRepository.findAll();
-        
+
         List<ResTestResult> responseList = results.stream()
                 .map(this::toResponseDTO)
                 .collect(Collectors.toList());
@@ -55,15 +53,15 @@ public class TestResultService {
                     .build();
         }
 
-        // testResultRepository ichida findByUsersOrderByTakenAtDesc(Users user) metodi bo'lishi kerak
-        List<TestResult> userResults = testResultRepository.findByUsersOrderByCreatedAtDesc(userOpt.get());
+        List<TestResult> userResults = testResultRepository
+                .findByUsersOrderByCreatedAtDesc(userOpt.get());
 
         if (userResults.isEmpty()) {
-             return ApiResponse.builder()
+            return ApiResponse.builder()
                     .message("Sizda hali test natijalari yo'q")
                     .success(true)
                     .status(HttpStatus.OK)
-                    .body(List.of()) // Bo'sh ro'yxat
+                    .body(List.of())
                     .build();
         }
 
@@ -80,7 +78,7 @@ public class TestResultService {
     }
 
     // ====================================================================
-    // ID orqali bitta natijani to'liq ko'rish (Batafsil ma'lumot)
+    // ID orqali bitta natijani to'liq ko'rish
     // ====================================================================
     public ApiResponse getResultById(Long id) {
         Optional<TestResult> resultOpt = testResultRepository.findById(id);
@@ -100,27 +98,42 @@ public class TestResultService {
                 .build();
     }
 
-
     // ==================== HELPER METHOD ====================
-    // Entityni DTO ga o'girish
     private ResTestResult toResponseDTO(TestResult result) {
-        
-        // O'sha natija foydalanuvchisiga AI qanday tavsiya berganini tortib olamiz
-        String aiMessage = "Tavsiya topilmadi";
-        List<Recommendation> recommendations = recommendationRepository.findAllByUsers(result.getUsers());
-        if (!recommendations.isEmpty()) {
-            // Eng so'nggi tavsiyani olamiz (agar ro'yxat bo'lsa oxirgisi)
-            aiMessage = recommendations.get(recommendations.size() - 1).getReason();
+
+        // AI tavsiyasi
+        String aiRecommendation = result.getAiRecommendation() != null
+                ? result.getAiRecommendation()
+                : "AI tavsiyasi mavjud emas";
+
+        // Category nomi
+        String categoryName = "Noma'lum";
+        if (result.getTestSession() != null && result.getTestSession().getCategory() != null) {
+            categoryName = result.getTestSession().getCategory().getName();
         }
+
+        // takenAt ni olish (entitydagi takenAt ustunligi beriladi)
+        LocalDateTime takenAt = result.getTakenAt() != null
+                ? result.getTakenAt()
+                : (result.getTestSession() != null
+                ? result.getTestSession().getEndTime()
+                : result.getCreatedAt());
 
         return ResTestResult.builder()
                 .id(result.getId())
                 .userId(result.getUsers().getId())
                 .userName(result.getUsers().getFullName())
-                .categoryName(result.getTest().getCategory().getName()) // Test Entity endi Category ga bog'langan
-                .score(result.getScore())
-                .takenAt(result.getTakenAt())
-                .aiRecommendationMessage(aiMessage)
+                .categoryName(categoryName)
+
+                .correctCount(result.getCorrectCount())
+                .totalCount(result.getTotalCount())
+                .scorePercent(result.getScorePercent())
+
+                .recommendedModule(result.getRecommendedModule() != null
+                        ? result.getRecommendedModule()
+                        : "Aniqlanmadi")
+                .aiRecommendation(aiRecommendation)
+                .takenAt(takenAt)
                 .build();
     }
 }

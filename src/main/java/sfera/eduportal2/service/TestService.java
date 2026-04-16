@@ -308,6 +308,7 @@ public class TestService {
                 .aiRecommendation(aiRecommendation)
                 .recommendedModule(weakestModule != null
                         ? weakestModule.getModuleName() : "Aniqlanmadi")
+                .takenAt(LocalDateTime.now())
                 .build());
 
         return ApiResponse.builder()
