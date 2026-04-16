@@ -11,12 +11,12 @@ import java.util.Optional;
 @Repository
 public interface RecommendationRepository extends JpaRepository<Recommendation, Long> {
 
-    // Foydalanuvchi bo'yicha barcha tavsiyalarni olish
-    List<Recommendation> findAllByUsers(Users users);
 
     // Foydalanuvchi bo'yicha eng so'nggi tavsiyani olish
     Optional<Recommendation> findTopByUsersOrderByCreatedAtDesc(Users users);
 
     // Foydalanuvchi uchun tavsiya mavjudligini tekshirish
     boolean existsByUsersId(Long userId);
+
+    Optional<Recommendation> findTopByUsersOrderByIdDesc(Users users);
 }

@@ -7,9 +7,9 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ResStopTest {
-    private int correctCount;
-    private int totalCount;
-    private double scorePercent;
-    private String recommendedModule;
+    private int correctAnswers;
+    private int totalQuestions;
+    private String scorePercent;
+    private String weakestModule;
     private String aiRecommendation;
 }
