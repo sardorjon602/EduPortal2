@@ -3,6 +3,7 @@ package sfera.eduportal2.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import sfera.eduportal2.Payload.ApiResponse;
 import sfera.eduportal2.Payload.request.ReqQuestions;
@@ -17,12 +18,14 @@ public class QuestionsController {
 
     @PostMapping("/save")
     @Operation(summary = "Type -> OPTION, TEXT")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<ApiResponse> saveQuestions(@RequestBody ReqQuestions reqQuestions) {
         ApiResponse response = questionsService.saveQuestion(reqQuestions);
         return ResponseEntity.status(response.getStatus()).body(response);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<ApiResponse> updateQuestion(@PathVariable Long id,
                                                       @RequestBody ReqQuestions reqQuestions) {
         ApiResponse response = questionsService.updateQuestion(id, reqQuestions);
@@ -30,6 +33,7 @@ public class QuestionsController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<ApiResponse> deleteQuestion(@PathVariable Long id) {
         ApiResponse response = questionsService.deleteQuestion(id);
         return ResponseEntity.status(response.getStatus()).body(response);
