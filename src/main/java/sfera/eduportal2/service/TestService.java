@@ -28,14 +28,7 @@ public class TestService {
     private final QuestionsRepository questionsRepository;
     private final OptionsRepository optionsRepository;
     private final UserAnswerRepository userAnswerRepository;
-    private final RestTemplate restTemplate;
-
-    @Value("${gemini.api.key}")
-    private String apiKey;
-
-    // gemini-2.0-flash — v1beta da ishlaydi, bepul
-    private static final String GEMINI_URL =
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+    private final AiService aiService;
 
     // ================================================================
     // TESTNI BOSHLASH
@@ -59,7 +52,6 @@ public class TestService {
         }
 
         Category category = categoryOpt.get();
-
         List<Questions> questions = questionsRepository
                 .findByModuleCategoryId(category.getId());
 
@@ -76,14 +68,14 @@ public class TestService {
 
         TestSession testSession = testSessionRepository.save(
                 TestSession.builder()
-                        .users(currentUser) // @CurrentUser dan
+                        .users(currentUser)
                         .category(category)
                         .startTime(LocalDateTime.now())
                         .isFinished(false)
                         .build()
         );
 
-        // Faqat OPTION type savollar uchun optionlarni olamiz
+        // Faqat OPTION savollar uchun optionlarni olamiz
         List<Long> optionQuestionIds = questions.stream()
                 .filter(q -> q.getType() == Type.OPTION)
                 .map(Questions::getId)
@@ -115,7 +107,7 @@ public class TestService {
                     .type(q.getType())
                     .moduleId(q.getModule().getId())
                     .moduleName(q.getModule().getModuleName())
-                    .options(optionDtos) // TEXT type uchun bo'sh list keladi
+                    .options(optionDtos)
                     .build();
         }).collect(Collectors.toList());
 
@@ -158,7 +150,6 @@ public class TestService {
 
         TestSession testSession = sessionOpt.get();
 
-        // Sessiya shu userga tegishli ekanini tekshiramiz
         if (!testSession.getUsers().getId().equals(currentUser.getId())) {
             return ApiResponse.builder()
                     .message("Bu sessiya sizga tegishli emas!")
@@ -184,11 +175,10 @@ public class TestService {
                     .build();
         }
 
-        // DB da mavjud savollarni olamiz — yo'q questionId lar avtomatik filtrlanadi
         List<Questions> questionsList = questionsRepository
                 .findAllById(new ArrayList<>(allQuestionIds));
 
-        // Faqat mavjud va OPTION type savollar uchun optionlarni olamiz
+        // OPTION savollar uchun optionlarni olamiz
         List<Long> optionQuestionIds = questionsList.stream()
                 .filter(q -> q.getType() == Type.OPTION)
                 .map(Questions::getId)
@@ -201,8 +191,21 @@ public class TestService {
         Map<Long, List<Options>> optionsByQuestionId = allOptions.stream()
                 .collect(Collectors.groupingBy(opt -> opt.getQuestions().getId()));
 
+        // TEXT savollarni AI ga tekshirtirish uchun ajratamiz
+        Map<Long, String> textQuestionMap = new LinkedHashMap<>();
+        for (Questions q : questionsList) {
+            if (q.getType() == Type.TEXT) {
+                textQuestionMap.put(q.getId(), q.getText());
+            }
+        }
+
+        // AI TEXT javoblarni tekshiradi
+        Map<Long, Boolean> textCheckResults = aiService.checkTextAnswers(
+                textQuestionMap, textAnswers);
+
+        // ---- SCORE HISOBLASH ----
         int correct = 0;
-        int total = questionsList.size(); // faqat DB da mavjud savollar sanaladi
+        int total = questionsList.size();
         Map<Long, ModuleStats> moduleStatsMap = new LinkedHashMap<>();
         StringBuilder optionPrompt = new StringBuilder();
         StringBuilder textPrompt = new StringBuilder();
@@ -256,22 +259,29 @@ public class TestService {
                 String userText = textAnswers.getOrDefault(
                         q.getId(), "Javob berilmagan");
 
+                // AI tekshirgan natijani olamiz
+                boolean isCorrect = textCheckResults.getOrDefault(q.getId(), false);
+                if (isCorrect) correct++;
+
                 userAnswers.add(UserAnswer.builder()
                         .testSession(testSession)
                         .questions(q)
                         .textAnswer(userText)
-                        .isCorrect(false)
+                        .isCorrect(isCorrect) // AI tekshirgan natija
                         .build());
 
                 if (q.getModule() != null) {
                     moduleStatsMap.computeIfAbsent(
                             q.getModule().getId(),
                             id -> new ModuleStats(q.getModule()));
+                    moduleStatsMap.get(q.getModule().getId()).addResult(isCorrect);
                 }
 
                 textPrompt.append("Modul: ").append(moduleName).append("\n");
                 textPrompt.append("Savol: ").append(q.getText()).append("\n");
-                textPrompt.append("User javobi: ").append(userText).append("\n\n");
+                textPrompt.append("User javobi: ").append(userText).append("\n");
+                textPrompt.append("AI natija: ")
+                        .append(isCorrect ? "TO'G'RI" : "NOTO'G'RI").append("\n\n");
             }
         }
 
@@ -283,6 +293,7 @@ public class TestService {
 
         double scorePercent = total > 0 ? (correct * 100.0 / total) : 0.0;
 
+        // Umumiy tavsiya uchun prompt
         StringBuilder fullPrompt = new StringBuilder();
         fullPrompt.append(String.format(
                 "Umumiy natija: %d/%d (%.1f%%)\n\n", correct, total, scorePercent));
@@ -290,17 +301,18 @@ public class TestService {
             fullPrompt.append("OPTION SAVOLLAR:\n").append(optionPrompt);
         }
         if (textPrompt.length() > 0) {
-            fullPrompt.append("TEXT SAVOLLAR (siz tekshiring):\n").append(textPrompt);
+            fullPrompt.append("TEXT SAVOLLAR:\n").append(textPrompt);
         }
 
-        String aiRecommendation = callGeminiApi(fullPrompt.toString());
+        // AI umumiy tavsiya beradi
+        String aiRecommendation = aiService.getRecommendation(fullPrompt.toString());
 
         Module weakestModule = moduleStatsMap.values().stream()
                 .max(Comparator.comparingDouble(ModuleStats::errorRate))
                 .map(ModuleStats::getModule).orElse(null);
 
         testResultRepository.save(TestResult.builder()
-                .users(currentUser) // @CurrentUser dan
+                .users(currentUser)
                 .testSession(testSession)
                 .correctCount(correct)
                 .totalCount(total)
@@ -308,7 +320,6 @@ public class TestService {
                 .aiRecommendation(aiRecommendation)
                 .recommendedModule(weakestModule != null
                         ? weakestModule.getModuleName() : "Aniqlanmadi")
-                .takenAt(LocalDateTime.now())
                 .build());
 
         return ApiResponse.builder()
@@ -324,65 +335,6 @@ public class TestService {
                         .aiRecommendation(aiRecommendation)
                         .build())
                 .build();
-    }
-
-    // ================================================================
-    // GEMINI API — gemini-2.0-flash (v1beta, bepul)
-    // ================================================================
-    private String callGeminiApi(String testSummary) {
-        try {
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-
-            String systemPrompt = """
-                    Siz ta'lim bo'yicha AI maslahatchisiz.
-                    
-                    OPTION savollar allaqachon tekshirilgan (to'g'ri/noto'g'ri belgilangan).
-                    TEXT savollar uchun user javobini savol bilan solishtiring va \
-                    to'g'ri yoki noto'g'ri ekanini aniqlang.
-                    
-                    Quyidagi formatda javob bering:
-                    1. UMUMIY BAHO: (2-3 jumlada natijani baholash)
-                    2. ZAIF TOMONLAR: (qaysi modullarda xato ko'p, TEXT savollarda \
-                    ham xato borligini ko'rsating)
-                    3. TAVSIYA ETILGAN MODUL: (birinchi o'qishi kerak bo'lgan modul nomi)
-                    4. SABAB: (nima uchun aynan shu modul)
-                    5. KEYINGI QADAM: (qanday o'qish kerak, amaliy maslahat)
-                    
-                    Javob o'zbek tilida, rag'batlantiruvchi va aniq bo'lsin.
-                    """;
-
-            Map<String, Object> body = Map.of(
-                    "contents", List.of(
-                            Map.of("parts", List.of(
-                                    Map.of("text", systemPrompt + "\n\n" + testSummary)
-                            ))
-                    )
-            );
-
-            String urlWithKey = GEMINI_URL + "?key=" + apiKey;
-            HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
-            ResponseEntity<Map> response = restTemplate.postForEntity(
-                    urlWithKey, request, Map.class);
-
-            if (response.getStatusCode() == HttpStatus.OK
-                    && response.getBody() != null) {
-                List<Map<String, Object>> candidates =
-                        (List<Map<String, Object>>) response.getBody().get("candidates");
-                if (candidates != null && !candidates.isEmpty()) {
-                    Map<String, Object> content =
-                            (Map<String, Object>) candidates.get(0).get("content");
-                    List<Map<String, Object>> parts =
-                            (List<Map<String, Object>>) content.get("parts");
-                    if (parts != null && !parts.isEmpty()) {
-                        return (String) parts.get(0).get("text");
-                    }
-                }
-            }
-        } catch (Exception e) {
-            return "AI tavsiyasini olishda xatolik: " + e.getMessage();
-        }
-        return "AI tavsiyasi mavjud emas";
     }
 
     // ================================================================
