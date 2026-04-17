@@ -20,7 +20,7 @@ public class AiService {
     private final ModuleRepository moduleRepository;
 
     private static final String GEMINI_URL =
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
     // ================================================================
     // TEXT javoblarni tekshirish — har bir savol uchun alohida
