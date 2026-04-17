@@ -60,6 +60,10 @@ public class RecommendationService {
         Users user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Foydalanuvchi topilmadi: id=" + userId));
 
+
+
+
+
         // Foydalanuvchining so'nggi 5 test natijasi
         List<TestResult> results = testResultRepository.findTop5ByUsersOrderByCreatedAtDesc(user);
         double avgScore = results.stream()

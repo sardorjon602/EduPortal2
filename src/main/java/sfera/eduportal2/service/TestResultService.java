@@ -22,6 +22,10 @@ public class TestResultService {
     private final TestResultRepository testResultRepository;
     private final UserRepository userRepository;
 
+
+
+
+
     // ====================================================================
     // ADMIN UCHUN: Barcha natijalarni ko'rish
     // ====================================================================
