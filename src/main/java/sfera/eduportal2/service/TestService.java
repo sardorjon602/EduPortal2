@@ -33,6 +33,8 @@ public class TestService {
     @Value("${gemini.api.key}")
     private String apiKey;
 
+
+
     private static final String GEMINI_URL =
             "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
