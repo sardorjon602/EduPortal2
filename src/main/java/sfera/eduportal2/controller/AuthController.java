@@ -1,5 +1,6 @@
 package sfera.eduportal2.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -32,6 +33,7 @@ public class AuthController {
     }
 
     @PostMapping("/register")
+    @Operation(summary = "Level -> JUNIOR, MIDDLE, SENIOR, ")
     public ResponseEntity<ApiResponse> register(@RequestBody AuthRegister authRegister){
         ApiResponse register = authService.register(authRegister);
         return ResponseEntity.ok(register);

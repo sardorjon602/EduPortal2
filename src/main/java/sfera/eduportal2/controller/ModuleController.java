@@ -1,6 +1,7 @@
 package sfera.eduportal2.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import sfera.eduportal2.Payload.ApiResponse;
 import sfera.eduportal2.Payload.request.ReqModule;
@@ -24,16 +25,19 @@ public class ModuleController {
     }
 
     @PostMapping("/save")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ApiResponse save (@RequestBody ReqModule requestModule){
         return moduleService.save(requestModule);
     }
 
     @PutMapping("/update/{id}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ApiResponse update(@PathVariable Long id,@RequestBody ReqModule requestModule){
     return moduleService.update(id,requestModule);
     }
 
     @DeleteMapping("/delete/{id}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ApiResponse delete (@PathVariable Long id){
         return moduleService.delete(id);
     }
