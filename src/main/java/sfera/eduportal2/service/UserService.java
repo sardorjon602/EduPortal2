@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import sfera.eduportal2.Payload.ApiResponse;
 import sfera.eduportal2.Payload.request.AuthRegister;
 import sfera.eduportal2.Payload.request.ReqUser;
+import sfera.eduportal2.Payload.response.ResUser;
 import sfera.eduportal2.Payload.response.Token;
 import sfera.eduportal2.Repository.RoleRepository;
 import sfera.eduportal2.Repository.UserRepository;
@@ -14,6 +15,8 @@ import sfera.eduportal2.Security.JwtProvider;
 import sfera.eduportal2.entity.Users;
 import sfera.eduportal2.entity.enums.Role;
 import sfera.eduportal2.mapper.UserMapper;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -169,6 +172,37 @@ public class UserService {
                 .build();
     }
 
+
+    public ApiResponse getAllUsers() {
+        List<Users> users = userRepository.findAll();
+        List<ResUser> resUsers = users.stream()
+                .map(userMapper::resUser)
+                .toList();
+        return ApiResponse.builder()
+                .message("Success")
+                .success(true)
+                .status(HttpStatus.OK)
+                .body(resUsers)
+                .build();
+    }
+
+    public ApiResponse getUserByEmail(String email) {
+        Users user = userRepository.findByEmail(email).orElse(null);
+        if (user == null) {
+            return ApiResponse.builder()
+                    .message("User not found")
+                    .success(false)
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(null)
+                    .build();
+        }
+        return ApiResponse.builder()
+                .message("Success")
+                .success(true)
+                .status(HttpStatus.OK)
+                .body(userMapper.resUser(user))
+                .build();
+    }
 
 
 }
