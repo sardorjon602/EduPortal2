@@ -36,6 +36,7 @@ public class TestService {
     private static final String GEMINI_URL =
             "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
+    private final AiService aiService;
 
     // ================================================================
     // TESTNI BOSHLASH
@@ -61,6 +62,8 @@ public class TestService {
         Category category = categoryOpt.get();
 
         List<Questions> questions = questionsRepository.findByModuleCategoryId(category.getId());
+        List<Questions> questions = questionsRepository
+                .findByModuleCategoryId(category.getId());
 
         if (questions.isEmpty()) {
             return ApiResponse.builder()
@@ -82,6 +85,7 @@ public class TestService {
                         .build()
         );
 
+        // Faqat OPTION savollar uchun optionlarni olamiz
         List<Long> optionQuestionIds = questions.stream()
                 .filter(q -> q.getType() == Type.OPTION)
                 .map(Questions::getId)
@@ -183,6 +187,8 @@ public class TestService {
         List<Questions> questionsList = questionsRepository
                 .findAllById(new ArrayList<>(allQuestionIds));
 
+
+        // OPTION savollar uchun optionlarni olamiz
         List<Long> optionQuestionIds = questionsList.stream()
                 .filter(q -> q.getType() == Type.OPTION)
                 .map(Questions::getId)
@@ -195,6 +201,19 @@ public class TestService {
         Map<Long, List<Options>> optionsByQuestionId = allOptions.stream()
                 .collect(Collectors.groupingBy(opt -> opt.getQuestions().getId()));
 
+        // TEXT savollarni AI ga tekshirtirish uchun ajratamiz
+        Map<Long, String> textQuestionMap = new LinkedHashMap<>();
+        for (Questions q : questionsList) {
+            if (q.getType() == Type.TEXT) {
+                textQuestionMap.put(q.getId(), q.getText());
+            }
+        }
+
+        // AI TEXT javoblarni tekshiradi
+        Map<Long, Boolean> textCheckResults = aiService.checkTextAnswers(
+                textQuestionMap, textAnswers);
+
+        // ---- SCORE HISOBLASH ----
         int correct = 0;
         int total = questionsList.size();
         Map<Long, ModuleStats> moduleStatsMap = new LinkedHashMap<>();
@@ -254,11 +273,16 @@ public class TestService {
                 boolean isCorrect = evaluateTextAnswerWithGemini(q.getText(), userText);
                 if (isCorrect) correct++;
 
+                // AI tekshirgan natijani olamiz
+                boolean isCorrect = textCheckResults.getOrDefault(q.getId(), false);
+                if (isCorrect) correct++;
+
                 userAnswers.add(UserAnswer.builder()
                         .testSession(testSession)
                         .questions(q)
                         .textAnswer(userText)
                         .isCorrect(isCorrect)
+                        .isCorrect(isCorrect) // AI tekshirgan natija
                         .build());
 
                 if (q.getModule() != null) {
@@ -274,6 +298,9 @@ public class TestService {
                         userText.isBlank() ? "Javob berilmagan" : userText).append("\n");
                 textPrompt.append("Natija: ")
                         .append(isCorrect ? "TO'G'RI ✓" : "NOTO'G'RI ✗").append("\n\n");
+                textPrompt.append("User javobi: ").append(userText).append("\n");
+                textPrompt.append("AI natija: ")
+                        .append(isCorrect ? "TO'G'RI" : "NOTO'G'RI").append("\n\n");
             }
         }
 
@@ -285,6 +312,7 @@ public class TestService {
 
         double scorePercent = total > 0 ? (correct * 100.0 / total) : 0.0;
 
+        // Umumiy tavsiya uchun prompt
         StringBuilder fullPrompt = new StringBuilder();
         fullPrompt.append(String.format(
                 "Umumiy natija: %d/%d (%.1f%%)\n\n", correct, total, scorePercent));
@@ -296,6 +324,8 @@ public class TestService {
         }
 
         String aiRecommendation = callGeminiForRecommendation(fullPrompt.toString());
+        // AI umumiy tavsiya beradi
+        String aiRecommendation = aiService.getRecommendation(fullPrompt.toString());
 
         Module weakestModule = moduleStatsMap.values().stream()
                 .max(Comparator.comparingDouble(ModuleStats::errorRate))
@@ -310,7 +340,6 @@ public class TestService {
                 .aiRecommendation(aiRecommendation)
                 .recommendedModule(weakestModule != null
                         ? weakestModule.getModuleName() : "Aniqlanmadi")
-                .takenAt(LocalDateTime.now())
                 .build());
 
         return ApiResponse.builder()
@@ -419,6 +448,7 @@ public class TestService {
     }
 
     // ================================================================
+
     // HELPER
     // ================================================================
     private static class ModuleStats {
