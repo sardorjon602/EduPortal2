@@ -33,9 +33,9 @@ public class TestService {
     @Value("${gemini.api.key}")
     private String apiKey;
 
-    // gemini-2.0-flash — v1beta da ishlaydi, bepul
     private static final String GEMINI_URL =
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+
 
     // ================================================================
     // TESTNI BOSHLASH
@@ -60,8 +60,7 @@ public class TestService {
 
         Category category = categoryOpt.get();
 
-        List<Questions> questions = questionsRepository
-                .findByModuleCategoryId(category.getId());
+        List<Questions> questions = questionsRepository.findByModuleCategoryId(category.getId());
 
         if (questions.isEmpty()) {
             return ApiResponse.builder()
@@ -76,14 +75,13 @@ public class TestService {
 
         TestSession testSession = testSessionRepository.save(
                 TestSession.builder()
-                        .users(currentUser) // @CurrentUser dan
+                        .users(currentUser)
                         .category(category)
                         .startTime(LocalDateTime.now())
                         .isFinished(false)
                         .build()
         );
 
-        // Faqat OPTION type savollar uchun optionlarni olamiz
         List<Long> optionQuestionIds = questions.stream()
                 .filter(q -> q.getType() == Type.OPTION)
                 .map(Questions::getId)
@@ -103,7 +101,7 @@ public class TestService {
                     .map(opt -> ResOptions.builder()
                             .id(opt.getId())
                             .text(opt.getText())
-                            .isCorrect(false) // YASHIRILDI
+                            .isCorrect(false)
                             .questionId(q.getId())
                             .questionText(q.getText())
                             .build())
@@ -115,7 +113,7 @@ public class TestService {
                     .type(q.getType())
                     .moduleId(q.getModule().getId())
                     .moduleName(q.getModule().getModuleName())
-                    .options(optionDtos) // TEXT type uchun bo'sh list keladi
+                    .options(optionDtos)
                     .build();
         }).collect(Collectors.toList());
 
@@ -146,8 +144,7 @@ public class TestService {
                     .build();
         }
 
-        Optional<TestSession> sessionOpt = testSessionRepository
-                .findById(req.getSessionId());
+        Optional<TestSession> sessionOpt = testSessionRepository.findById(req.getSessionId());
         if (sessionOpt.isEmpty()) {
             return ApiResponse.builder()
                     .message("Test sessiyasi topilmadi")
@@ -158,7 +155,6 @@ public class TestService {
 
         TestSession testSession = sessionOpt.get();
 
-        // Sessiya shu userga tegishli ekanini tekshiramiz
         if (!testSession.getUsers().getId().equals(currentUser.getId())) {
             return ApiResponse.builder()
                     .message("Bu sessiya sizga tegishli emas!")
@@ -184,11 +180,9 @@ public class TestService {
                     .build();
         }
 
-        // DB da mavjud savollarni olamiz — yo'q questionId lar avtomatik filtrlanadi
         List<Questions> questionsList = questionsRepository
                 .findAllById(new ArrayList<>(allQuestionIds));
 
-        // Faqat mavjud va OPTION type savollar uchun optionlarni olamiz
         List<Long> optionQuestionIds = questionsList.stream()
                 .filter(q -> q.getType() == Type.OPTION)
                 .map(Questions::getId)
@@ -202,7 +196,7 @@ public class TestService {
                 .collect(Collectors.groupingBy(opt -> opt.getQuestions().getId()));
 
         int correct = 0;
-        int total = questionsList.size(); // faqat DB da mavjud savollar sanaladi
+        int total = questionsList.size();
         Map<Long, ModuleStats> moduleStatsMap = new LinkedHashMap<>();
         StringBuilder optionPrompt = new StringBuilder();
         StringBuilder textPrompt = new StringBuilder();
@@ -212,10 +206,10 @@ public class TestService {
             String moduleName = q.getModule() != null
                     ? q.getModule().getModuleName() : "Noma'lum";
 
+            // ── OPTION savollar ──────────────────────────────────────
             if (q.getType() == Type.OPTION) {
                 Long selectedOptId = answers.get(q.getId());
-                List<Options> opts = optionsByQuestionId
-                        .getOrDefault(q.getId(), List.of());
+                List<Options> opts = optionsByQuestionId.getOrDefault(q.getId(), List.of());
 
                 Options selectedOption = opts.stream()
                         .filter(opt -> opt.getId().equals(selectedOptId))
@@ -252,26 +246,34 @@ public class TestService {
                 optionPrompt.append("Natija: ")
                         .append(isCorrect ? "TO'G'RI" : "NOTO'G'RI").append("\n\n");
 
+            // ── TEXT savollar — Gemini orqali tekshiriladi ───────────
             } else if (q.getType() == Type.TEXT) {
-                String userText = textAnswers.getOrDefault(
-                        q.getId(), "Javob berilmagan");
+                String userText = textAnswers.getOrDefault(q.getId(), "");
+
+                // Gemini javobni tekshiradi → true yoki false
+                boolean isCorrect = evaluateTextAnswerWithGemini(q.getText(), userText);
+                if (isCorrect) correct++;
 
                 userAnswers.add(UserAnswer.builder()
                         .testSession(testSession)
                         .questions(q)
                         .textAnswer(userText)
-                        .isCorrect(false)
+                        .isCorrect(isCorrect)
                         .build());
 
                 if (q.getModule() != null) {
                     moduleStatsMap.computeIfAbsent(
                             q.getModule().getId(),
                             id -> new ModuleStats(q.getModule()));
+                    moduleStatsMap.get(q.getModule().getId()).addResult(isCorrect);
                 }
 
                 textPrompt.append("Modul: ").append(moduleName).append("\n");
                 textPrompt.append("Savol: ").append(q.getText()).append("\n");
-                textPrompt.append("User javobi: ").append(userText).append("\n\n");
+                textPrompt.append("User javobi: ").append(
+                        userText.isBlank() ? "Javob berilmagan" : userText).append("\n");
+                textPrompt.append("Natija: ")
+                        .append(isCorrect ? "TO'G'RI ✓" : "NOTO'G'RI ✗").append("\n\n");
             }
         }
 
@@ -290,17 +292,17 @@ public class TestService {
             fullPrompt.append("OPTION SAVOLLAR:\n").append(optionPrompt);
         }
         if (textPrompt.length() > 0) {
-            fullPrompt.append("TEXT SAVOLLAR (siz tekshiring):\n").append(textPrompt);
+            fullPrompt.append("TEXT SAVOLLAR:\n").append(textPrompt);
         }
 
-        String aiRecommendation = callGeminiApi(fullPrompt.toString());
+        String aiRecommendation = callGeminiForRecommendation(fullPrompt.toString());
 
         Module weakestModule = moduleStatsMap.values().stream()
                 .max(Comparator.comparingDouble(ModuleStats::errorRate))
                 .map(ModuleStats::getModule).orElse(null);
 
         testResultRepository.save(TestResult.builder()
-                .users(currentUser) // @CurrentUser dan
+                .users(currentUser)
                 .testSession(testSession)
                 .correctCount(correct)
                 .totalCount(total)
@@ -327,62 +329,93 @@ public class TestService {
     }
 
     // ================================================================
-    // GEMINI API — gemini-2.0-flash (v1beta, bepul)
+    // GEMINI — TEXT javobni tekshirish (faqat true / false qaytaradi)
     // ================================================================
-    private String callGeminiApi(String testSummary) {
+    private boolean evaluateTextAnswerWithGemini(String questionText, String userAnswer) {
         try {
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-
-            String systemPrompt = """
-                    Siz ta'lim bo'yicha AI maslahatchisiz.
-                    
-                    OPTION savollar allaqachon tekshirilgan (to'g'ri/noto'g'ri belgilangan).
-                    TEXT savollar uchun user javobini savol bilan solishtiring va \
-                    to'g'ri yoki noto'g'ri ekanini aniqlang.
-                    
-                    Quyidagi formatda javob bering:
-                    1. UMUMIY BAHO: (2-3 jumlada natijani baholash)
-                    2. ZAIF TOMONLAR: (qaysi modullarda xato ko'p, TEXT savollarda \
-                    ham xato borligini ko'rsating)
-                    3. TAVSIYA ETILGAN MODUL: (birinchi o'qishi kerak bo'lgan modul nomi)
-                    4. SABAB: (nima uchun aynan shu modul)
-                    5. KEYINGI QADAM: (qanday o'qish kerak, amaliy maslahat)
-                    
-                    Javob o'zbek tilida, rag'batlantiruvchi va aniq bo'lsin.
-                    """;
-
-            Map<String, Object> body = Map.of(
-                    "contents", List.of(
-                            Map.of("parts", List.of(
-                                    Map.of("text", systemPrompt + "\n\n" + testSummary)
-                            ))
-                    )
-            );
-
-            String urlWithKey = GEMINI_URL + "?key=" + apiKey;
-            HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
-            ResponseEntity<Map> response = restTemplate.postForEntity(
-                    urlWithKey, request, Map.class);
-
-            if (response.getStatusCode() == HttpStatus.OK
-                    && response.getBody() != null) {
-                List<Map<String, Object>> candidates =
-                        (List<Map<String, Object>>) response.getBody().get("candidates");
-                if (candidates != null && !candidates.isEmpty()) {
-                    Map<String, Object> content =
-                            (Map<String, Object>) candidates.get(0).get("content");
-                    List<Map<String, Object>> parts =
-                            (List<Map<String, Object>>) content.get("parts");
-                    if (parts != null && !parts.isEmpty()) {
-                        return (String) parts.get(0).get("text");
-                    }
-                }
+            if (userAnswer == null || userAnswer.isBlank()) {
+                return false;
             }
+
+            String prompt = String.format("""
+                    Sen ta'lim tekshiruvchisisан. Quyidagi savol va javobni ko'rib chiq.
+                    
+                    Savol: %s
+                    
+                    Foydalanuvchi javobi: %s
+                    
+                    Agar javob savolga mazmuniy jihatdan to'g'ri bo'lsa — faqat "true" yoz.
+                    Agar noto'g'ri, to'liq emas yoki savolga aloqasiz bo'lsa — faqat "false" yoz.
+                    Boshqa hech narsa yozma. Faqat bitta so'z: true yoki false
+                    """, questionText, userAnswer);
+
+            String result = callGeminiRaw(prompt);
+            return result.toLowerCase().contains("true");
+
+        } catch (Exception e) {
+            System.err.println("Gemini text evaluation xatolik: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // ================================================================
+    // GEMINI — Yakuniy tavsiya
+    // ================================================================
+    private String callGeminiForRecommendation(String testSummary) {
+        String systemPrompt = """
+                Siz ta'lim bo'yicha AI maslahatchisiz.
+                Barcha savollar (option va text) allaqachon tekshirilgan.
+                
+                Quyidagi formatda javob bering:
+                1. UMUMIY BAHO: (2-3 jumlada natijani baholash)
+                2. ZAIF TOMONLAR: (qaysi modullarda xato ko'p)
+                3. TAVSIYA ETILGAN MODUL: (birinchi o'qishi kerak bo'lgan modul nomi)
+                4. SABAB: (nima uchun aynan shu modul)
+                5. KEYINGI QADAM: (qanday o'qish kerak, amaliy maslahat)
+                
+                Javob o'zbek tilida, rag'batlantiruvchi va aniq bo'lsin.
+                """;
+
+        try {
+            return callGeminiRaw(systemPrompt + "\n\n" + testSummary);
         } catch (Exception e) {
             return "AI tavsiyasini olishda xatolik: " + e.getMessage();
         }
-        return "AI tavsiyasi mavjud emas";
+    }
+
+    // ================================================================
+    // GEMINI — Asosiy chaqiruv (ikkala metod ham shu orqali ishlaydi)
+    // ================================================================
+    private String callGeminiRaw(String prompt) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        Map<String, Object> body = Map.of(
+                "contents", List.of(
+                        Map.of("parts", List.of(
+                                Map.of("text", prompt)
+                        ))
+                )
+        );
+
+        String urlWithKey = GEMINI_URL + "?key=" + apiKey;
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+        ResponseEntity<Map> response = restTemplate.postForEntity(urlWithKey, request, Map.class);
+
+        if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+            List<Map<String, Object>> candidates =
+                    (List<Map<String, Object>>) response.getBody().get("candidates");
+            if (candidates != null && !candidates.isEmpty()) {
+                Map<String, Object> content =
+                        (Map<String, Object>) candidates.get(0).get("content");
+                List<Map<String, Object>> parts =
+                        (List<Map<String, Object>>) content.get("parts");
+                if (parts != null && !parts.isEmpty()) {
+                    return parts.get(0).get("text").toString().trim();
+                }
+            }
+        }
+        return "";
     }
 
     // ================================================================
