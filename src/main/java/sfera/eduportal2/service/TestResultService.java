@@ -9,6 +9,7 @@ import sfera.eduportal2.Repository.TestResultRepository;
 import sfera.eduportal2.Repository.UserRepository;
 import sfera.eduportal2.entity.TestResult;
 import sfera.eduportal2.entity.Users;
+import sfera.eduportal2.entity.enums.Role;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -22,15 +23,12 @@ public class TestResultService {
     private final TestResultRepository testResultRepository;
     private final UserRepository userRepository;
 
-
-
-
-
-    // ====================================================================
-    // ADMIN UCHUN: Barcha natijalarni ko'rish
-    // ====================================================================
-    public ApiResponse getAllResults() {
-        List<TestResult> results = testResultRepository.findAll();
+    // ================================================================
+    // 5. ADMIN: barcha natijalar + username filtr
+    // ================================================================
+    public ApiResponse getAllResults(String username) {
+        List<TestResult> results = testResultRepository
+                .findAllByUsernameFilter(username);
 
         List<ResTestResult> responseList = results.stream()
                 .map(this::toResponseDTO)
@@ -44,25 +42,33 @@ public class TestResultService {
                 .build();
     }
 
-    // ====================================================================
-    // O'QUVCHI UCHUN: Faqat o'zining natijalarini ko'rish
-    // ====================================================================
-    public ApiResponse getMyResults(Long userId) {
-        Optional<Users> userOpt = userRepository.findById(userId);
-        if (userOpt.isEmpty()) {
-            return ApiResponse.builder()
-                    .message("Foydalanuvchi topilmadi")
-                    .success(false)
-                    .status(HttpStatus.NOT_FOUND)
-                    .build();
+    // ================================================================
+    // 6. getMyResults — admin userId beradi, user tokendan olinadi
+    // ================================================================
+    public ApiResponse getMyResults(Users currentUser, Long userId) {
+        Users targetUser;
+
+        if (currentUser.getRole().getRole().equals(Role.ROLE_ADMIN) && userId != null) {
+            // Admin boshqa userning natijalarini ko'rmoqda
+            targetUser = userRepository.findById(userId).orElse(null);
+            if (targetUser == null) {
+                return ApiResponse.builder()
+                        .message("Foydalanuvchi topilmadi")
+                        .success(false)
+                        .status(HttpStatus.NOT_FOUND)
+                        .build();
+            }
+        } else {
+            // Oddiy user o'z natijalarini ko'rmoqda
+            targetUser = currentUser;
         }
 
         List<TestResult> userResults = testResultRepository
-                .findByUsersOrderByCreatedAtDesc(userOpt.get());
+                .findByUsersOrderByCreatedAtDesc(targetUser);
 
         if (userResults.isEmpty()) {
             return ApiResponse.builder()
-                    .message("Sizda hali test natijalari yo'q")
+                    .message("Hali test natijalari yo'q")
                     .success(true)
                     .status(HttpStatus.OK)
                     .body(List.of())
@@ -74,16 +80,13 @@ public class TestResultService {
                 .collect(Collectors.toList());
 
         return ApiResponse.builder()
-                .message("Sizning test natijalaringiz")
+                .message("Test natijalari")
                 .success(true)
                 .status(HttpStatus.OK)
                 .body(responseList)
                 .build();
     }
 
-    // ====================================================================
-    // ID orqali bitta natijani to'liq ko'rish
-    // ====================================================================
     public ApiResponse getResultById(Long id) {
         Optional<TestResult> resultOpt = testResultRepository.findById(id);
         if (resultOpt.isEmpty()) {
@@ -93,7 +96,6 @@ public class TestResultService {
                     .status(HttpStatus.NOT_FOUND)
                     .build();
         }
-
         return ApiResponse.builder()
                 .message("Test natijasi topildi")
                 .success(true)
@@ -102,40 +104,28 @@ public class TestResultService {
                 .build();
     }
 
-    // ==================== HELPER METHOD ====================
     private ResTestResult toResponseDTO(TestResult result) {
-
-        // AI tavsiyasi
         String aiRecommendation = result.getAiRecommendation() != null
-                ? result.getAiRecommendation()
-                : "AI tavsiyasi mavjud emas";
+                ? result.getAiRecommendation() : "AI tavsiyasi mavjud emas";
 
-        // Category nomi
         String categoryName = "Noma'lum";
-        if (result.getTestSession() != null && result.getTestSession().getCategory() != null) {
+        if (result.getTestSession() != null
+                && result.getTestSession().getCategory() != null) {
             categoryName = result.getTestSession().getCategory().getName();
         }
 
-        // takenAt ni olish (entitydagi takenAt ustunligi beriladi)
-        LocalDateTime takenAt = result.getTakenAt() != null
-                ? result.getTakenAt()
-                : (result.getTestSession() != null
-                ? result.getTestSession().getEndTime()
-                : result.getCreatedAt());
+        LocalDateTime takenAt = result.getCreatedAt();
 
         return ResTestResult.builder()
                 .id(result.getId())
                 .userId(result.getUsers().getId())
                 .userName(result.getUsers().getFullName())
                 .categoryName(categoryName)
-
                 .correctCount(result.getCorrectCount())
                 .totalCount(result.getTotalCount())
                 .scorePercent(result.getScorePercent())
-
                 .recommendedModule(result.getRecommendedModule() != null
-                        ? result.getRecommendedModule()
-                        : "Aniqlanmadi")
+                        ? result.getRecommendedModule() : "Aniqlanmadi")
                 .aiRecommendation(aiRecommendation)
                 .takenAt(takenAt)
                 .build();

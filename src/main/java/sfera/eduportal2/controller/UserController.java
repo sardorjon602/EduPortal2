@@ -15,58 +15,48 @@ import sfera.eduportal2.service.UserService;
 @RestController
 @RequestMapping("/users")
 @RequiredArgsConstructor
-
 public class UserController {
-
 
     private final UserService userService;
 
+    // 2. Filtr qo'shildi — name, phone, email optional
     @GetMapping("/all")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @Operation(summary = "Get all users - Admin only",
-            description = "Returns a list of all registered users")
-    public ResponseEntity<ApiResponse> getAllUsers() {
-        ApiResponse apiResponse = userService.getAllUsers();
-        return ResponseEntity.ok(apiResponse);
-    }
-
-    @GetMapping("/by-email")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
-    @Operation(summary = "Find user by email - Admin only",
-            description = "Returns user details by email address")
-    public ResponseEntity<ApiResponse> getUserByEmail(@RequestParam String email) {
-        ApiResponse apiResponse = userService.getUserByEmail(email);
+            description = "name, email, phone bo'yicha filtr qo'llanilishi mumkin")
+    public ResponseEntity<ApiResponse> getAllUsers(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String phone) {
+        ApiResponse apiResponse = userService.getAllUsers(name, email, phone);
         return ResponseEntity.ok(apiResponse);
     }
 
     @GetMapping("/me")
     public ResponseEntity<ApiResponse> getMe(@CurrentUser Users user) {
-        ApiResponse me = userService.getMe(user);
-        return ResponseEntity.ok(me);
+        return ResponseEntity.ok(userService.getMe(user));
     }
-
 
     @PostMapping("/teacher-save")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    @Operation(summary = "This API is for Admin only. ",
-            description = "Teacher data is stored through this API")
+    @Operation(summary = "Admin uchun — Teacher qo'shish")
     public ResponseEntity<ApiResponse> teacherSave(@RequestBody AuthRegister authRegister) {
-        ApiResponse teacher = userService.teacherSave(authRegister);
-        return ResponseEntity.ok(teacher);
+        return ResponseEntity.ok(userService.teacherSave(authRegister));
     }
 
-
+    // 3. Admin userni update qilishi — mavjud
     @PutMapping("/update")
-    public ResponseEntity<ApiResponse> update(@CurrentUser Users user, @RequestBody ReqUser reqUser){
-        ApiResponse apiResponse = userService.updateUser(user, reqUser);
-        return ResponseEntity.ok(apiResponse);
+    public ResponseEntity<ApiResponse> update(
+            @CurrentUser Users user,
+            @RequestBody ReqUser reqUser) {
+        return ResponseEntity.ok(userService.updateUser(user, reqUser));
     }
+
+
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<ApiResponse> deleteUser(@PathVariable Long id) {
-        ApiResponse apiResponse = userService.deleteUser(id);
-        return ResponseEntity.ok(apiResponse);
-
+        return ResponseEntity.ok(userService.deleteUser(id));
     }
 
-
-}
+    }

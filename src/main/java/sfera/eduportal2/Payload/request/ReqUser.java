@@ -16,7 +16,6 @@ import lombok.*;
 
 public class ReqUser {
 
-    @Schema(hidden = true)
     private Long id;
 
     @NotBlank(message = "Don't leave your first and last name blank.")

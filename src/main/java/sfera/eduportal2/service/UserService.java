@@ -2,6 +2,8 @@ package sfera.eduportal2.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import sfera.eduportal2.Payload.ApiResponse;
@@ -22,15 +24,14 @@ import java.util.List;
 @RequiredArgsConstructor
 public class UserService {
 
-
     private final UserMapper userMapper;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final RoleRepository roleRepository;
     private final JwtProvider jwtProvider;
+    private final JavaMailSender javaMailSender;
 
     public ApiResponse getMe(Users user) {
-
         return ApiResponse.builder()
                 .message("Success")
                 .success(true)
@@ -40,13 +41,13 @@ public class UserService {
     }
 
     public ApiResponse teacherSave(AuthRegister authRegister) {
-        boolean exists = userRepository.existsByEmailAndRole_Role(authRegister.getEmail(), Role.ROLE_TEACHER);
+        boolean exists = userRepository.existsByEmailAndRole_Role(
+                authRegister.getEmail(), Role.ROLE_TEACHER);
         if (exists) {
             return ApiResponse.builder()
                     .message("Teacher already exists")
                     .success(false)
                     .status(HttpStatus.BAD_REQUEST)
-                    .body(null)
                     .build();
         }
 
@@ -62,122 +63,39 @@ public class UserService {
                 .level(authRegister.getLevel())
                 .build();
         userRepository.save(user);
+
         return ApiResponse.builder()
                 .message("Teacher successfully saved")
                 .success(true)
                 .status(HttpStatus.OK)
-                .body(null)
                 .build();
     }
 
-    public ApiResponse updateUser(Users user, ReqUser reqUser) {
-        if (user.getRole().getRole().equals(Role.ROLE_ADMIN)) {
-            if (reqUser.getId() == null) {
-                boolean exists = userRepository.existsByEmailAndRole_RoleAndIdNot(user.getEmail(), Role.ROLE_ADMIN, reqUser.getId());
-                if (exists) {
-                    return ApiResponse.builder()
-                            .message("This email already exists.")
-                            .success(false)
-                            .status(HttpStatus.BAD_REQUEST)
-                            .body(null)
-                            .build();
-                }
-                user.setFullName(reqUser.getFullName());
-                user.setPhoneNumber(reqUser.getPhoneNumber());
+    // ================================================================
+    // 2. users/all — filtr qo'shildi
+    // ================================================================
+    public ApiResponse getAllUsers(String name, String email, String phone) {
+        List<Users> users;
 
-                if (!reqUser.getEmail().equals(user.getEmail())) {
-                    user.setEmail(reqUser.getEmail());
-                    Users save = userRepository.save(user);
-                    String token = jwtProvider.generateToken(save.getEmail());
-                    Token token1 = Token.builder().token(token).role(Role.ROLE_ADMIN.name()).build();
-                    return ApiResponse.builder()
-                            .message("Successfully updated ")
-                            .success(true)
-                            .status(HttpStatus.OK)
-                            .body(token1)
-                            .build();
-                }
-                userRepository.save(user);
-                return ApiResponse.builder()
-                        .message("Successfully updated ")
-                        .success(true)
-                        .status(HttpStatus.OK)
-                        .body(null)
-                        .build();
+        boolean hasName = name != null && !name.isEmpty();
+        boolean hasEmail = email != null && !email.isEmpty();
+        boolean hasPhone = phone != null && !phone.isEmpty();
 
-            } else {
-                user = userRepository.findById(reqUser.getId()).orElse(null);
-                if (user == null) {
-                    return ApiResponse.builder()
-                            .message("User not found.")
-                            .success(false)
-                            .status(HttpStatus.BAD_REQUEST)
-                            .body(null)
-                            .build();
-                }
-
-                user.setFullName(reqUser.getFullName());
-                user.setPhoneNumber(reqUser.getPhoneNumber());
-                user.setEmail(reqUser.getEmail());
-
-                userRepository.save(user);
-                return ApiResponse.builder()
-                        .message("Success ")
-                        .success(true)
-                        .status(HttpStatus.OK)
-                        .body(null)
-                        .build();
-            }
+        if (hasName || hasEmail || hasPhone) {
+            users = userRepository
+                    .findByFullNameContainingIgnoreCaseAndEmailContainingIgnoreCaseAndPhoneNumberContaining(
+                            hasName ? name : "",
+                            hasEmail ? email : "",
+                            hasPhone ? phone : ""
+                    );
         } else {
-            user.setFullName(reqUser.getFullName());
-            user.setPhoneNumber(reqUser.getPhoneNumber());
-            if (!reqUser.getEmail().equals(user.getEmail())) {
-                user.setEmail(reqUser.getEmail());
-                Users save = userRepository.save(user);
-                String token = jwtProvider.generateToken(save.getEmail());
-                Token token1 = Token.builder().token(token).role(user.getRole().getRole().name()).build();
-                return ApiResponse.builder()
-                        .message("Success")
-                        .success(true)
-                        .status(HttpStatus.OK)
-                        .body(null)
-                        .build();
-            } else {
-                userRepository.save(user);
-                return ApiResponse.builder()
-                        .message("Success")
-                        .success(true)
-                        .status(HttpStatus.OK)
-                        .body(null)
-                        .build();
-            }
+            users = userRepository.findAll();
         }
-    }
-    public ApiResponse deleteUser(Long id){
-        Users users = userRepository.findById(id).orElse(null);
-        if (users == null) {
-            return ApiResponse.builder()
-                    .message("User not found")
-                    .success(false)
-                    .status(HttpStatus.BAD_REQUEST)
-                    .body(null)
-                    .build();
-        }
-        userRepository.delete(users);
-        return ApiResponse.builder()
-                .message("Successfully deleted")
-                .success(true)
-                .status(HttpStatus.OK)
-                .body(null)
-                .build();
-    }
 
-
-    public ApiResponse getAllUsers() {
-        List<Users> users = userRepository.findAll();
         List<ResUser> resUsers = users.stream()
                 .map(userMapper::resUser)
                 .toList();
+
         return ApiResponse.builder()
                 .message("Success")
                 .success(true)
@@ -185,33 +103,165 @@ public class UserService {
                 .body(resUsers)
                 .build();
     }
+    // ================================================================
+    // 3. Admin userni update qilishi
+    // ================================================================
+    public ApiResponse updateUser(Users currentUser, ReqUser reqUser) {
+        if (currentUser.getRole().getRole().equals(Role.ROLE_ADMIN)) {
+            if (reqUser.getId() == null) {
+                // Admin o'zini update qilmoqda
+                boolean exists = userRepository.existsByEmailAndRole_RoleAndIdNot(
+                        reqUser.getEmail(), Role.ROLE_ADMIN, currentUser.getId());
+                if (exists) {
+                    return ApiResponse.builder()
+                            .message("This email already exists.")
+                            .success(false)
+                            .status(HttpStatus.BAD_REQUEST)
+                            .build();
+                }
 
-    public ApiResponse getUserByEmail(String email) {
-        Users user = userRepository.findByEmail(email).orElse(null);
-        if (user == null) {
+                currentUser.setFullName(reqUser.getFullName());
+                currentUser.setPhoneNumber(reqUser.getPhoneNumber());
+
+                if (!reqUser.getEmail().equals(currentUser.getEmail())) {
+                    currentUser.setEmail(reqUser.getEmail());
+                    Users saved = userRepository.save(currentUser);
+                    String token = jwtProvider.generateToken(saved.getEmail());
+                    return ApiResponse.builder()
+                            .message("Successfully updated")
+                            .success(true)
+                            .status(HttpStatus.OK)
+                            .body(Token.builder()
+                                    .token(token)
+                                    .role(Role.ROLE_ADMIN.name())
+                                    .build())
+                            .build();
+                }
+
+                userRepository.save(currentUser);
+                return ApiResponse.builder()
+                        .message("Successfully updated")
+                        .success(true)
+                        .status(HttpStatus.OK)
+                        .build();
+
+            } else {
+                // Admin boshqa userni update qilmoqda
+                Users targetUser = userRepository.findById(reqUser.getId()).orElse(null);
+                if (targetUser == null) {
+                    return ApiResponse.builder()
+                            .message("User not found.")
+                            .success(false)
+                            .status(HttpStatus.NOT_FOUND)
+                            .build();
+                }
+
+                targetUser.setFullName(reqUser.getFullName());
+                targetUser.setPhoneNumber(reqUser.getPhoneNumber());
+                targetUser.setEmail(reqUser.getEmail());
+                userRepository.save(targetUser);
+
+                return ApiResponse.builder()
+                        .message("User successfully updated")
+                        .success(true)
+                        .status(HttpStatus.OK)
+                        .build();
+            }
+        } else {
+            // Oddiy user o'zini update qilmoqda
+            currentUser.setFullName(reqUser.getFullName());
+            currentUser.setPhoneNumber(reqUser.getPhoneNumber());
+
+            if (!reqUser.getEmail().equals(currentUser.getEmail())) {
+                currentUser.setEmail(reqUser.getEmail());
+                Users saved = userRepository.save(currentUser);
+                String token = jwtProvider.generateToken(saved.getEmail());
+                return ApiResponse.builder()
+                        .message("Successfully updated")
+                        .success(true)
+                        .status(HttpStatus.OK)
+                        .body(Token.builder()
+                                .token(token)
+                                .role(currentUser.getRole().getRole().name())
+                                .build())
+                        .build();
+            }
+
+            userRepository.save(currentUser);
+            return ApiResponse.builder()
+                    .message("Successfully updated")
+                    .success(true)
+                    .status(HttpStatus.OK)
+                    .build();
+        }
+    }
+
+    public ApiResponse deleteUser(Long id) {
+        Users users = userRepository.findById(id).orElse(null);
+        if (users == null) {
             return ApiResponse.builder()
                     .message("User not found")
                     .success(false)
-                    .status(HttpStatus.NOT_FOUND)
-                    .body(null)
+                    .status(HttpStatus.BAD_REQUEST)
                     .build();
         }
+        userRepository.delete(users);
         return ApiResponse.builder()
-                .message("Success")
+                .message("Successfully deleted")
                 .success(true)
                 .status(HttpStatus.OK)
-                .body(userMapper.resUser(user))
                 .build();
     }
 
+    // ================================================================
+    // 4. Forgot password
+    // ================================================================
+    public ApiResponse forgotPassword(String email) {
+        Users user = userRepository.findByEmail(email).orElse(null);
+        if (user == null) {
+            return ApiResponse.builder()
+                    .message("Bu email tizimda topilmadi")
+                    .success(false)
+                    .status(HttpStatus.NOT_FOUND)
+                    .build();
+        }
 
+        long code = Math.round(Math.random() * 1000000);
+        user.setCode(code);
+        userRepository.save(user);
 
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(email);
+        message.setSubject("Parolni tiklash kodi");
+        message.setText("Parolni tiklash uchun kod: " + code);
+        javaMailSender.send(message);
 
+        return ApiResponse.builder()
+                .message("Emailingizga kod yuborildi")
+                .success(true)
+                .status(HttpStatus.OK)
+                .build();
+    }
 
+    public ApiResponse resetPassword(Long code, String newPassword) {
+        Users user = userRepository.findByCode(code).orElse(null);
+        if (user == null) {
+            return ApiResponse.builder()
+                    .message("Kod noto'g'ri yoki muddati o'tgan")
+                    .success(false)
+                    .status(HttpStatus.BAD_REQUEST)
+                    .build();
+        }
 
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setCode(null);
+        userRepository.save(user);
 
-
-
-
+        return ApiResponse.builder()
+                .message("Parol muvaffaqiyatli yangilandi")
+                .success(true)
+                .status(HttpStatus.OK)
+                .build();
+    }
 
 }
