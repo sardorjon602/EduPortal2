@@ -21,8 +21,15 @@ public class TestResultController {
     @GetMapping("/all")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @Operation(summary = "(ADMIN) Barcha natijalar, username bo'yicha filtr")
-    public ResponseEntity<ApiResponse> getAllResults(@RequestParam(required = false)   String username ) {
-        ApiResponse response = testResultService.getAllResults(username);
+//    public ResponseEntity<ApiResponse> getAllResults(@RequestParam(required = false)   String username ) {
+//        ApiResponse response = testResultService.getAllResults(username);
+//        return ResponseEntity.status(response.getStatus()).body(response);
+//    }
+
+
+    public ResponseEntity<ApiResponse> getAllResults() {
+        // Endi service dagi metodga hech qanday parametr berilmaydi
+        ApiResponse response = testResultService.getAllResults();
         return ResponseEntity.status(response.getStatus()).body(response);
     }
 

@@ -216,6 +216,37 @@ public class UserService {
     // ================================================================
     // 4. Forgot password
     // ================================================================
+//    public ApiResponse forgotPassword(String email) {
+//        Users user = userRepository.findByEmail(email).orElse(null);
+//        if (user == null) {
+//            return ApiResponse.builder()
+//                    .message("Bu email tizimda topilmadi")
+//                    .success(false)
+//                    .status(HttpStatus.NOT_FOUND)
+//                    .build();
+//        }
+//
+//        long code = Math.round(Math.random() * 1000000);
+//        user.setCode(code);
+//        userRepository.save(user);
+//
+//        SimpleMailMessage message = new SimpleMailMessage();
+//        message.setTo(email);
+//        message.setSubject("Parolni tiklash kodi");
+//        message.setText("Parolni tiklash uchun kod: " + code);
+//        javaMailSender.send(message);
+//
+//        return ApiResponse.builder()
+//                .message("Emailingizga kod yuborildi")
+//                .success(true)
+//                .status(HttpStatus.OK)
+//                .build();
+//    }
+
+
+    // ================================================================
+    // 4. Forgot password
+    // ================================================================
     public ApiResponse forgotPassword(String email) {
         Users user = userRepository.findByEmail(email).orElse(null);
         if (user == null) {
@@ -231,6 +262,10 @@ public class UserService {
         userRepository.save(user);
 
         SimpleMailMessage message = new SimpleMailMessage();
+
+        // MANA SHU QATOR QO'SHILDI:
+        message.setFrom("haqqulovsardor51@gmail.com");
+
         message.setTo(email);
         message.setSubject("Parolni tiklash kodi");
         message.setText("Parolni tiklash uchun kod: " + code);
@@ -242,6 +277,8 @@ public class UserService {
                 .status(HttpStatus.OK)
                 .build();
     }
+
+
 
     public ApiResponse resetPassword(Long code, String newPassword) {
         Users user = userRepository.findByCode(code).orElse(null);

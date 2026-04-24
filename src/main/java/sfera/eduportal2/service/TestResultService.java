@@ -26,9 +26,29 @@ public class TestResultService {
     // ================================================================
     // 5. ADMIN: barcha natijalar + username filtr
     // ================================================================
-    public ApiResponse getAllResults(String username) {
-        List<TestResult> results = testResultRepository
-                .findAllByUsernameFilter(username);
+//    public ApiResponse getAllResults(String username) {
+//        List<TestResult> results = testResultRepository
+//                .findAllByUsernameFilter(username);
+//
+//        List<ResTestResult> responseList = results.stream()
+//                .map(this::toResponseDTO)
+//                .collect(Collectors.toList());
+//
+//        return ApiResponse.builder()
+//                .message("Barcha test natijalari olindi")
+//                .success(true)
+//                .status(HttpStatus.OK)
+//                .body(responseList)
+//                .build();
+//    }
+
+
+    // ================================================================
+    // 5. ADMIN: barcha natijalar (Filtrsiz)
+    // ================================================================
+    public ApiResponse getAllResults() {
+        // findAllByUsernameFilter o'rniga barchasini oladigan findAll() ishlatiladi
+        List<TestResult> results = testResultRepository.findAll();
 
         List<ResTestResult> responseList = results.stream()
                 .map(this::toResponseDTO)
